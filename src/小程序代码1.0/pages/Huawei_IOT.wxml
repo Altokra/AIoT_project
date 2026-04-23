@@ -1,0 +1,75 @@
+<!--pages/Huawei_IOT.wxml-->
+<view class="page-container">
+
+  <!-- 状态显示卡片 -->
+  <view class="card status-card">
+    <view class="status-header">
+      <text class="status-title">设备状态</text>
+      <text class="status-hint">{{result}}</text>
+    </view>
+    <view class="sensor-row">
+      <view class="sensor-item">
+        <view class="sensor-icon temp-icon">🌡️</view>
+        <text class="sensor-label">温度</text>
+        <text class="sensor-value">{{temperature}}℃</text>
+      </view>
+      <view class="sensor-item">
+        <view class="sensor-icon light-icon">☀️</view>
+        <text class="sensor-label">光照</text>
+        <text class="sensor-value">{{photores}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 控制按钮卡片 -->
+  <view class="card control-card">
+    <text class="card-title">灯光控制</text>
+    <view class="btn-row">
+      <button class="btn-on" bindtap="onClickOpen">开灯</button>
+      <button class="btn-off" bindtap="onClickOff">关灯</button>
+    </view>
+    <view class="btn-row">
+      <button class="btn-action" bindtap="touchBtn_subTopic">订阅</button>
+      <button class="btn-action" bindtap="touchBtn_getshadow">获取设备影子</button>
+    </view>
+    <button class="btn-cmd" bindtap="touchBtn_setCommand">下发 RGB 命令</button>
+  </view>
+
+  <!-- RGB 调节卡片 -->
+  <view class="card rgb-card">
+    <text class="card-title">RGB 颜色调节</text>
+
+    <view class="slider-row">
+      <view class="slider-header">
+        <text class="slider-label">🔴 红色</text>
+        <text class="slider-value">{{RGBtemp[1]}}</text>
+      </view>
+      <slider bindchange="slider1change" min="0" max="255" value="{{RGBtemp[1]}}" activeColor="#ff4a4a" backgroundColor="#ffe0e0"/>
+    </view>
+
+    <view class="slider-row">
+      <view class="slider-header">
+        <text class="slider-label">🔵 蓝色</text>
+        <text class="slider-value">{{RGBtemp[2]}}</text>
+      </view>
+      <slider bindchange="slider2change" min="0" max="255" value="{{RGBtemp[2]}}" activeColor="#4a4aff" backgroundColor="#e0e0ff"/>
+    </view>
+
+    <view class="slider-row">
+      <view class="slider-header">
+        <text class="slider-label">🟢 绿色</text>
+        <text class="slider-value">{{RGBtemp[3]}}</text>
+      </view>
+      <slider bindchange="slider3change" min="0" max="255" value="{{RGBtemp[3]}}" activeColor="#4aff4a" backgroundColor="#e0ffe0"/>
+    </view>
+
+    <view class="slider-row">
+      <view class="slider-header">
+        <text class="slider-label">⚡ 频率</text>
+        <text class="slider-value">{{RGBtemp[4]}}</text>
+      </view>
+      <slider bindchange="slider4change" min="0" max="100" value="{{RGBtemp[4]}}" activeColor="#ffa500" backgroundColor="#fff0e0"/>
+    </view>
+  </view>
+
+</view>

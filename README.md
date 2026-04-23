@@ -2,7 +2,7 @@
  * @Author: ka1shu1 cwh979946@163.com
  * @Date: 2026-04-13 18:30:12
  * @LastEditors: ka1shu1 cwh979946@163.com
- * @LastEditTime: 2026-04-18 15:44:58
+ * @LastEditTime: 2026-04-20 14:30:25
  * @FilePath: \final project\README.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -65,8 +65,20 @@
 
 
 
+### key words
+
+offline需求
+
+数据本地化
+
+边缘计算
+
+通过读书数据来给出读书决策建议，
+
 
 ### 硬件部分
 
 - Ntag213
-- RC522
+- 
+- MFRC522
+- 
