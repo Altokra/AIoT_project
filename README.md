@@ -2,7 +2,7 @@
  * @Author: ka1shu1 cwh979946@163.com
  * @Date: 2026-04-13 18:30:12
  * @LastEditors: ka1shu1 cwh979946@163.com
- * @LastEditTime: 2026-04-20 14:30:25
+ * @LastEditTime: 2026-04-23 09:43:19
  * @FilePath: \final project\README.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -81,4 +81,49 @@ offline需求
 - Ntag213
 - 
 - MFRC522
-- 
+
+
+## 日志
+
+
+### before 04-23-2026
+
+初始化仓库，构思项目实现目标、使用设备、工作原理
+
+查阅资料
+
+搬运代码
+
+
+### 04-23-2026
+添加.gitignore,保护密钥
+
+新建产品设备, 暂时使用课程中用到的物模型
+
+测试mqtt连通性 check
+
+esp32连接华为云
+
+测试NFC功能 check ，- [] bug:距离太短！
+
+测试条形码扫描功能  3v3 GND  check
+
+图书uid绑定isbn check
+
+难点！如何通过ISBN获取图书信息
+
+- SmartLibrary bugs：
+  - 
+  - 看门狗错误 E (16138) task_wdt: esp_task_wdt_reset(763): task not found
+  - BOOK属性无法上报：多打了个花括号
+
+
+## 改进可能
+
+小程序端手动输入书籍信息（比如有些日记本、笔记本没有条形码或者条形码不具有特殊性）
+
+
+RC522感应距离过短--增加天线
+
+
+

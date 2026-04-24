@@ -1,0 +1,114 @@
+; Windows USB CDC ACM Setup File
+
+; Based on INF template which was:
+;     Copyright (c) 2000 Microsoft Corporation
+;     Copyright (c) 2007 Microchip Technology Inc.
+; likely to be covered by the MLPL as found at:
+;    <http://msdn.microsoft.com/en-us/cc300389.aspx#MLPL>.
+; For use only on Windows operating systems.
+
+[Version]
+Signature="$CHICAGO$"
+Class=Ports
+ClassGuid={4D36E978-E325-11CE-BFC1-08002BE10318}
+Provider=%Linux%
+DriverVer=11/16/2012,6.1.7601.17514
+CatalogFile=usbser.cat
+
+[Manufacturer]
+%Linux%=DeviceList,NTamd64,NTx86
+
+[DestinationDirs]
+DefaultDestDir=12
+
+;------------------------------------------------------------------------------
+;  Vendor and Product ID Definitions
+;-----------------------------------------------------------------------------
+[DeviceList.NTx86]
+;;É¨ÂëÆ÷
+%DESCRIPTION%=DriverInstall.NTx86, USB\VID_26f1&PID_8802
+
+
+[DeviceList.NTamd64]
+;;É¨ÂëÆ÷
+%DESCRIPTION%=DriverInstall.NTamd64, USB\VID_26f1&PID_8802
+
+;***********************************************************
+;                   XP,2K,WIN732BIT
+;***********************************************************
+[DriverInstall.NTx86]
+include=mdmcpq.inf
+CopyFiles=DriverCopyFiles.NTx86
+AddReg=DriverInstall.NTx86.AddReg
+
+[DriverCopyFiles.NTx86]
+usbser.sys,usbser32.sys,,0x10
+
+[DriverInstall.NTx86.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,usbser.sys
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
+
+[DriverInstall.NTx86.Services]
+AddService=USBSER, 0x00000002, DriverService.NTx86
+
+[DriverService.NTx86]
+DisplayName=%SERVICE%
+ServiceType=1
+StartType=3
+ErrorControl=1
+ServiceBinary=%12%\usbser.sys
+
+[SourceDisksNames.x86]
+1 = "usb2uart installation disk",,,
+
+[SourceDisksFiles.x86]
+usbser.inf = 1
+usbser32.sys = 1
+
+;***********************************************************
+;                   64 bit
+;***********************************************************
+[DriverInstall.NTamd64]
+include=mdmcpq.inf
+CopyFiles=DriverCopyFiles.NTamd64
+AddReg=DriverInstall.NTamd64.AddReg
+
+[DriverCopyFiles.NTamd64]
+usbser.sys,usbser64.sys,,0x10
+
+[DriverInstall.NTamd64.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,usbser.sys
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
+
+[DriverInstall.NTamd64.Services]
+AddService=USBSER,0x00000002,DriverService.NTamd64
+
+[DriverService.NTamd64]
+DisplayName=%SERVICE%
+ServiceType=1
+StartType=3
+ErrorControl=1
+ServiceBinary=%12%\usbser.sys
+
+[SourceDisksNames.amd64]
+1 = "usb2uart installation disk",,,
+
+[SourceDisksFiles.amd64]
+usbser.inf = 1
+usbser64.sys = 1
+
+;------------------------------------------------------------------------------
+;  String Definitions
+;------------------------------------------------------------------------------
+;Modify these strings to customize your device
+;------------------------------------------------------------------------------
+[Strings]
+Linux               	 = "TMC LTD."
+DESCRIPTION        	 = "TMC USB2UART"
+DESCRIPTION_LOGGING_0    = "TMC USB2UART Port 0 (Logging Port 0)"
+DESCRIPTION_LOGGING_1    = "TMC USB2UART Port 1 (Logging Port 1)"
+DESCRIPTION_USB2UART_0   = "TMC USB2UART Port 2"
+DESCRIPTION_USB2UART_1   = "TMC USB2UART Port 3"
+SERVICE             	 = "USB RS-232 Emulation Driver"

@@ -1,0 +1,8 @@
+[autorun]
+OPEN=Autorun.exe
+ICON=AUTORUN.ICO
+
+[INFO]
+Inf32=Win32\usbser.inf
+Inf64=Win64\usbser.inf
+SetupAp=SeLLang.exe

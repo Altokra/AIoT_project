@@ -1,16 +1,18 @@
 /*
   ESP32 MFRC522 NFC 模块 - 图书识别核心代码
   功能：读取 NFC 标签 UID，与图书信息对应
-  使用 HSPI 接口，避免与 I2C 设备冲突
 
-  引脚连接（HSPI 方案）：
-  - SDA (CS):  GPIO 15
-  - SCK:       GPIO 14
-  - MOSI:      GPIO 13
-  - MISO:      GPIO 12
-  - RST:       GPIO 4
+  引脚连接（VSPI 默认接口）：
+  - SDA (CS):  GPIO 5
+  - SCK:       GPIO 18
+  - MOSI:      GPIO 23
+  - MISO:      GPIO 19
+  - RST:       GPIO 21
   - 3.3V:      3.3V
   - GND:       GND
+
+  注意：GPIO 21/22 通常被 I2C 占用（BMP280/OLED）
+        如需同时使用 I2C 设备，请使用 HSPI 接口方案
 
   参考资料：https://randomnerdtutorials.com/esp32-mfrc522-rfid-reader-arduino/
 */
@@ -20,12 +22,12 @@
 #include <MFRC522DriverPinSimple.h>
 #include <MFRC522Debug.h>
 
-// ============== HSPI 引脚定义 ==============
-#define HSPI_SDA_PIN   15   // 片选引脚 (CS)
-#define HSPI_RST_PIN   4    // 复位引脚
+// ============== VSPI 引脚定义（默认 SPI）==============
+#define VSPI_SDA_PIN   5    // 片选引脚 (CS)
+#define VSPI_RST_PIN   21   // 复位引脚
 
 // ============== 全局对象 ==============
-MFRC522DriverPinSimple ss_pin(HSPI_SDA_PIN);
+MFRC522DriverPinSimple ss_pin(VSPI_SDA_PIN);
 MFRC522DriverSPI driver{ss_pin};
 MFRC522 mfrc522{driver};
 
