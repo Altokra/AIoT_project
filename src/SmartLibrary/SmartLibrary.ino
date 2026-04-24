@@ -128,7 +128,8 @@ String   barcodeBuffer  = "";
 String   pendingNFCUID = "";  // 待注册的 NFC UID
 String   lastDetectedUID = "";  // 上次检测到的卡片 UID
 unsigned long awaitingStart = 0;  // 进入等待扫码状态的时间
-unsigned long lastNFCCheck = 0;   // 上次 NFC 检测时间
+int      cardMissCount = 0;       // 连续未检测到卡片的次数
+const int CARD_MISS_THRESHOLD = 20; // 连续20次未检测到才判定离开（约1秒）
 
 // ============================================================
 // 离线图书缓存文件
@@ -475,13 +476,20 @@ String getUIDString() {
 // ============================================================
 void checkNFC() {
   if (!mfrc522.PICC_IsNewCardPresent()) {
-    // 无卡片 → 检查是否卡片刚离开（借出）
+    // 无卡片 → 累计丢失计数
     if (lastDetectedUID != "" && systemState != SystemState::AWAITING_SCAN) {
-      onBookRemoved(lastDetectedUID);
-      lastDetectedUID = "";
+      cardMissCount++;
+      if (cardMissCount >= CARD_MISS_THRESHOLD) {
+        onBookRemoved(lastDetectedUID);
+        lastDetectedUID = "";
+        cardMissCount = 0;
+      }
     }
     return;
   }
+
+  // 检测到卡片 → 重置丢失计数
+  cardMissCount = 0;
 
   if (!mfrc522.PICC_ReadCardSerial()) return;
 
