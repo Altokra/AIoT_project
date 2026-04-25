@@ -1,145 +1,366 @@
 <!--pages/Huawei_IOT.wxml-->
-<view class="page-container">
+<view class="container">
 
-  <!-- 状态显示卡片 -->
-  <view class="card status-card">
-    <view class="status-header">
-      <text class="status-title">设备状态</text>
-      <text class="status-hint">{{result}}</text>
-    </view>
-    <view class="sensor-row">
-      <view class="sensor-item">
-        <view class="sensor-icon temp-icon">🌡️</view>
-        <text class="sensor-label">温度</text>
-        <text class="sensor-value">{{temperature}}</text>
-      </view>
-      <view class="sensor-item">
-        <view class="sensor-icon light-icon">☀️</view>
-        <text class="sensor-label">光照</text>
-        <text class="sensor-value">{{photores}}</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 图书信息卡片 -->
-  <view class="card book-card">
-    <text class="card-title">📚 图书信息</text>
-
-    <!-- 无 ISBN 时 -->
-    <view wx:if="{{!bookIsbn}}" class="book-empty">
-      <text class="book-empty-text">暂无图书数据</text>
-      <text class="book-empty-hint">在设备端注册图书后，这里将显示信息</text>
+    <!-- 顶部渐变背景区域 -->
+    <view class="hero-section">
+        <view class="hero-bg"></view>
+        <view class="hero-content">
+            <view class="greeting">
+                <text class="greeting-text">智能图书馆</text>
+                <view class="status-badge {{isConnected ? 'online' : 'offline'}}">
+                    {{isConnected ? '在线' : '离线'}}
+                </view>
+            </view>
+            <view class="update-time">
+                <text>{{lastUpdateTime || '等待连接...'}}</text>
+            </view>
+        </view>
     </view>
 
-    <!-- 有 ISBN 但未查询 -->
-    <view wx:elif="{{bookIsbn && bookQueryStatus === 'idle'}}">
-      <view class="book-meta">
-        <text class="book-label">ISBN</text>
-        <text class="book-value">{{bookIsbn}}</text>
-      </view>
-      <view class="book-meta">
-        <text class="book-label">状态</text>
-        <text class="book-value">{{bookStatus}}</text>
-      </view>
-      <button class="btn-query" bindtap="touchBtn_queryBook">查询书籍信息</button>
+    <!-- 环境监测区域 -->
+    <view class="env-section">
+        <view class="env-card temp-card">
+            <view class="env-ring">
+                <view class="ring-center">
+                    <text class="ring-value">{{temperature}}</text>
+                    <text class="ring-label">温度</text>
+                </view>
+            </view>
+            <view class="env-tip">
+                <text>{{temperature > 30 ? '有点热' : '舒适'}}</text>
+            </view>
+        </view>
+
+        <view class="env-card light-card">
+            <view class="env-icon-large">
+                <text class="icon-large">光照</text>
+            </view>
+            <view class="env-data">
+                <text class="data-value">{{photores}}</text>
+                <text class="data-label">光照强度</text>
+            </view>
+            <view class="env-tip">
+                <text>{{photores > 600 ? '光线充足' : '光线偏暗'}}</text>
+            </view>
+        </view>
     </view>
 
-    <!-- 正在查询 -->
-    <view wx:elif="{{bookQueryStatus === 'querying'}}" class="book-loading">
-      <text class="book-loading-text">正在查询: {{bookIsbn}}</text>
+    <!-- LED状态指示灯区域 -->
+    <view class="led-section">
+        <view class="status-leds">
+            <view class="led-title">设备状态</view>
+            <view class="led-list">
+                <view class="led-item">
+                    <view class="led-dot green {{ledStatus.green}}"></view>
+                    <text class="led-text">系统待机</text>
+                </view>
+                <view class="led-item">
+                    <view class="led-dot blue {{ledStatus.blue}}"></view>
+                    <text class="led-text">图书归还</text>
+                </view>
+                <view class="led-item">
+                    <view class="led-dot red {{ledStatus.red}}"></view>
+                    <text class="led-text">图书借出</text>
+                </view>
+                <view class="led-item">
+                    <view class="led-dot network {{ledStatus.network}}"></view>
+                    <text class="led-text">网络连接</text>
+                </view>
+                <view class="led-item">
+                    <view class="led-dot temp {{ledStatus.temp}}"></view>
+                    <text class="led-text">温度告警</text>
+                </view>
+            </view>
+        </view>
+
+        <view class="rgb-legend">
+            <view class="legend-title">灯光说明</view>
+            <view class="legend-list">
+                <view class="legend-item">
+                    <view class="legend-color green-bg"></view>
+                    <text class="legend-text">绿灯常亮：系统正常</text>
+                </view>
+                <view class="legend-item">
+                    <view class="legend-color blue-bg"></view>
+                    <text class="legend-text">蓝灯闪一下：图书归还</text>
+                </view>
+                <view class="legend-item">
+                    <view class="legend-color red-bg"></view>
+                    <text class="legend-text">红灯闪一下：图书借出</text>
+                </view>
+                <view class="legend-item">
+                    <view class="legend-color red-blink"></view>
+                    <text class="legend-text">红灯慢闪：网络异常</text>
+                </view>
+                <view class="legend-item">
+                    <view class="legend-color red-blink-fast"></view>
+                    <text class="legend-text">红灯快闪：温度过高</text>
+                </view>
+            </view>
+        </view>
     </view>
 
-    <!-- 查询成功 -->
-    <view wx:elif="{{bookQueryStatus === 'success'}}" class="book-result">
-      <view class="book-meta">
-        <text class="book-label">ISBN</text>
-        <text class="book-value">{{bookIsbn}}</text>
-      </view>
-      <view class="book-meta">
-        <text class="book-label">书名</text>
-        <text class="book-value book-title-value">{{bookTitle}}</text>
-      </view>
-      <view class="book-meta">
-        <text class="book-label">作者</text>
-        <text class="book-value">{{bookAuthor}}</text>
-      </view>
-      <view class="book-meta">
-        <text class="book-label">出版社</text>
-        <text class="book-value">{{bookPublisher}}</text>
-      </view>
-      <view class="book-meta" wx:if="{{bookYear}}">
-        <text class="book-label">出版年</text>
-        <text class="book-value">{{bookYear}}</text>
-      </view>
-      <view class="book-meta">
-        <text class="book-label">设备状态</text>
-        <text class="book-value">{{bookStatus}}</text>
-      </view>
-      <button class="btn-send" bindtap="touchBtn_sendBookInfo">📤 下发到设备</button>
+    <!-- 藏书统计卡片 -->
+    <view class="stats-section">
+        <view class="stats-card">
+            <view class="stats-icon-text">总</view>
+            <view class="stats-info">
+                <text class="stats-number">{{bookCount || 0}}</text>
+                <text class="stats-label">总藏书</text>
+            </view>
+        </view>
+        <view class="stats-card">
+            <view class="stats-icon-text shelf">架</view>
+            <view class="stats-info">
+                <text class="stats-number">{{onShelfCount || 0}}</text>
+                <text class="stats-label">在架</text>
+            </view>
+        </view>
+        <view class="stats-card">
+            <view class="stats-icon-text out">出</view>
+            <view class="stats-info">
+                <text class="stats-number">{{borrowedCount || 0}}</text>
+                <text class="stats-label">借出</text>
+            </view>
+        </view>
     </view>
 
-    <!-- 查询失败 -->
-    <view wx:elif="{{bookQueryStatus === 'failed'}}">
-      <view class="book-meta">
-        <text class="book-label">ISBN</text>
-        <text class="book-value">{{bookIsbn}}</text>
-      </view>
-      <view class="book-failed">
-        <text>{{bookTitle}}</text>
-        <button class="btn-query" bindtap="touchBtn_queryBook">重新查询</button>
-      </view>
-    </view>
-  </view>
-
-  <!-- 控制按钮卡片 -->
-  <view class="card control-card">
-    <text class="card-title">灯光控制</text>
-    <view class="btn-row">
-      <button class="btn-on" bindtap="onClickOpen">开灯</button>
-      <button class="btn-off" bindtap="onClickOff">关灯</button>
-    </view>
-    <view class="btn-row">
-      <button class="btn-action" bindtap="touchBtn_subTopic">订阅获取Token</button>
-      <button class="btn-action" bindtap="touchBtn_getshadow">刷新设备影子</button>
-    </view>
-    <button class="btn-cmd" bindtap="touchBtn_setCommand">下发 RGB 命令</button>
-  </view>
-
-  <!-- RGB 调节卡片 -->
-  <view class="card rgb-card">
-    <text class="card-title">RGB 颜色调节</text>
-
-    <view class="slider-row">
-      <view class="slider-header">
-        <text class="slider-label">🔴 红色</text>
-        <text class="slider-value">{{RGBtemp[1]}}</text>
-      </view>
-      <slider bindchange="slider1change" min="0" max="255" value="{{RGBtemp[1]}}" activeColor="#ff4a4a" backgroundColor="#ffe0e0"/>
+    <!-- OBS 云端数据区域 -->
+    <view class="obs-section">
+        <view class="obs-sync-row">
+            <button class="btn-obs-sync" bindtap="loadFromOBS" disabled="{{obsSyncing}}" loading="{{obsSyncing}}">
+                从OBS读取统计
+            </button>
+            <button class="btn-obs-sync" bindtap="loadOBSHistory" disabled="{{obsSyncing}}">
+                读取历史记录
+            </button>
+        </view>
+        <view class="obs-status" wx:if="{{lastObsSync}}">
+            <text class="obs-status-text">上次读取: {{lastObsSync}}</text>
+        </view>
     </view>
 
-    <view class="slider-row">
-      <view class="slider-header">
-        <text class="slider-label">🔵 蓝色</text>
-        <text class="slider-value">{{RGBtemp[2]}}</text>
-      </view>
-      <slider bindchange="slider2change" min="0" max="255" value="{{RGBtemp[2]}}" activeColor="#4a4aff" backgroundColor="#e0e0ff"/>
+    <!-- 最近动态时间线 -->
+    <view class="timeline-section" wx:if="{{recentEvents.length > 0}}">
+        <view class="section-header">
+            <text class="section-title">最近动态</text>
+            <text class="section-sub">实时更新</text>
+        </view>
+        <view class="timeline">
+            <block wx:for="{{recentEvents}}" wx:key="index">
+                <view class="timeline-item">
+                    <view class="timeline-dot {{item.typeClass}}"></view>
+                    <view class="timeline-content">
+                        <text class="timeline-title">{{item.bookTitle || item.bookId || item.bookId}}</text>
+                        <text class="timeline-time">{{item.time}}</text>
+                    </view>
+                    <view class="timeline-badge {{item.typeClass}}">
+                        {{item.type === 'returned' ? '归还' : '借出'}}
+                    </view>
+                </view>
+            </block>
+        </view>
     </view>
 
-    <view class="slider-row">
-      <view class="slider-header">
-        <text class="slider-label">🟢 绿色</text>
-        <text class="slider-value">{{RGBtemp[3]}}</text>
-      </view>
-      <slider bindchange="slider3change" min="0" max="255" value="{{RGBtemp[3]}}" activeColor="#4aff4a" backgroundColor="#e0ffe0"/>
+    <!-- OBS 每本书阅读统计 -->
+    <view class="timeline-section" wx:if="{{showObsBookStats && obsBookStats.length > 0}}">
+        <view class="section-header">
+            <text class="section-title">阅读统计</text>
+            <text class="section-sub">来自云端</text>
+        </view>
+        <view class="obs-book-list">
+            <block wx:for="{{obsBookStats}}" wx:key="uid">
+                <view class="obs-book-card">
+                    <view class="obs-book-row">
+                        <text class="obs-book-title">{{item.title}}</text>
+                        <view class="obs-book-badge {{item.lastStatus}}">
+                            {{item.lastStatus === 'returned' ? '在架' : '借出'}}
+                        </view>
+                    </view>
+                    <view class="obs-book-stats">
+                        <view class="obs-book-stat">
+                            <text class="obs-stat-num">{{item.borrowCount}}</text>
+                            <text class="obs-stat-label">借出次数</text>
+                        </view>
+                        <view class="obs-book-stat">
+                            <text class="obs-stat-num">{{item.readingDisplay}}</text>
+                            <text class="obs-stat-label">阅读时长</text>
+                        </view>
+                    </view>
+                </view>
+            </block>
+        </view>
     </view>
 
-    <view class="slider-row">
-      <view class="slider-header">
-        <text class="slider-label">⚡ 频率</text>
-        <text class="slider-value">{{RGBtemp[4]}}</text>
-      </view>
-      <slider bindchange="slider4change" min="0" max="100" value="{{RGBtemp[4]}}" activeColor="#ffa500" backgroundColor="#fff0e0"/>
+    <!-- OBS 历史记录面板 -->
+    <view class="timeline-section" wx:if="{{showObsEvents && obsEvents.length > 0}}">
+        <view class="section-header">
+            <text class="section-title">历史借还记录</text>
+            <text class="section-sub" bindtap="loadOBSHistory">刷新</text>
+        </view>
+        <view class="timeline">
+            <block wx:for="{{obsEvents}}" wx:key="index">
+                <view class="timeline-item">
+                    <view class="timeline-dot {{item.typeClass}}"></view>
+                    <view class="timeline-content">
+                        <text class="timeline-title">{{item.bookTitle}}</text>
+                        <text class="timeline-time">{{item.time}}</text>
+                    </view>
+                    <view class="timeline-badge {{item.typeClass}}">
+                        {{item.type === 'returned' ? '归还' : '借出'}}
+                    </view>
+                </view>
+            </block>
+        </view>
     </view>
-  </view>
+
+    <!-- 图书信息卡片 -->
+    <view class="card book-card">
+        <view class="card-title-bar">
+            <text class="card-title">图书信息</text>
+        </view>
+
+        <!-- 无 ISBN 时 -->
+        <view wx:if="{{!bookIsbn}}" class="book-empty">
+            <text class="book-empty-text">暂无图书数据</text>
+            <text class="book-empty-hint">在设备端注册图书后，这里将显示信息</text>
+        </view>
+
+        <!-- 有 ISBN 但未查询 -->
+        <view wx:elif="{{bookIsbn && bookQueryStatus === 'idle'}}">
+            <view class="book-meta">
+                <text class="book-label">ISBN</text>
+                <text class="book-value">{{bookIsbn}}</text>
+            </view>
+            <view class="book-meta">
+                <text class="book-label">状态</text>
+                <text class="book-value">{{bookStatus}}</text>
+            </view>
+            <button class="btn-query" bindtap="touchBtn_queryBook">查询书籍信息</button>
+        </view>
+
+        <!-- 正在查询 -->
+        <view wx:elif="{{bookQueryStatus === 'querying'}}" class="book-loading">
+            <text class="book-loading-text">正在查询: {{bookIsbn}}</text>
+        </view>
+
+        <!-- 查询成功 -->
+        <view wx:elif="{{bookQueryStatus === 'success'}}" class="book-result">
+            <view class="book-meta">
+                <text class="book-label">ISBN</text>
+                <text class="book-value">{{bookIsbn}}</text>
+            </view>
+            <view class="book-meta">
+                <text class="book-label">书名</text>
+                <text class="book-value book-title-value">{{bookTitle}}</text>
+            </view>
+            <view class="book-meta">
+                <text class="book-label">作者</text>
+                <text class="book-value">{{bookAuthor}}</text>
+            </view>
+            <view class="book-meta">
+                <text class="book-label">出版社</text>
+                <text class="book-value">{{bookPublisher}}</text>
+            </view>
+            <view class="book-meta" wx:if="{{bookYear}}">
+                <text class="book-label">出版年</text>
+                <text class="book-value">{{bookYear}}</text>
+            </view>
+            <view class="book-meta">
+                <text class="book-label">设备状态</text>
+                <text class="book-value">{{bookStatus}}</text>
+            </view>
+            <button class="btn-send" bindtap="touchBtn_sendBookInfo">下发到设备</button>
+        </view>
+
+        <!-- 查询失败 -->
+        <view wx:elif="{{bookQueryStatus === 'failed'}}">
+            <view class="book-meta">
+                <text class="book-label">ISBN</text>
+                <text class="book-value">{{bookIsbn}}</text>
+            </view>
+            <view class="book-failed">
+                <text>{{bookTitle}}</text>
+                <button class="btn-query" bindtap="touchBtn_queryBook">重新查询</button>
+            </view>
+        </view>
+    </view>
+
+    <!-- 灯光控制卡片 -->
+    <view class="card control-card">
+        <view class="card-title-bar">
+            <text class="card-title">灯光控制</text>
+        </view>
+        <view class="btn-row">
+            <button class="btn-on" bindtap="onClickOpen">开灯</button>
+            <button class="btn-off" bindtap="onClickOff">关灯</button>
+        </view>
+        <view class="btn-row">
+            <button class="btn-action" bindtap="touchBtn_subTopic">获取Token</button>
+            <button class="btn-action" bindtap="manualRefresh">刷新</button>
+        </view>
+    </view>
+
+    <!-- RGB 调节卡片 -->
+    <view class="card rgb-card">
+        <view class="card-title-bar">
+            <text class="card-title">RGB 颜色调节</text>
+        </view>
+
+        <view class="slider-row">
+            <view class="slider-header">
+                <text class="slider-label" style="color:#ef4444;">红色</text>
+                <text class="slider-value">{{RGBtemp[1] || 0}}</text>
+            </view>
+            <slider bindchange="slider1change" min="0" max="255" value="{{RGBtemp[1] || 0}}" activeColor="#ff4a4a" backgroundColor="#ffe0e0"/>
+        </view>
+
+        <view class="slider-row">
+            <view class="slider-header">
+                <text class="slider-label" style="color:#3b82f6;">蓝色</text>
+                <text class="slider-value">{{RGBtemp[2] || 0}}</text>
+            </view>
+            <slider bindchange="slider2change" min="0" max="255" value="{{RGBtemp[2] || 0}}" activeColor="#4a4aff" backgroundColor="#e0e0ff"/>
+        </view>
+
+        <view class="slider-row">
+            <view class="slider-header">
+                <text class="slider-label" style="color:#22c55e;">绿色</text>
+                <text class="slider-value">{{RGBtemp[3] || 0}}</text>
+            </view>
+            <slider bindchange="slider3change" min="0" max="255" value="{{RGBtemp[3] || 0}}" activeColor="#4aff4a" backgroundColor="#e0ffe0"/>
+        </view>
+
+        <view class="slider-row">
+            <view class="slider-header">
+                <text class="slider-label" style="color:#f59e0b;">频率</text>
+                <text class="slider-value">{{RGBtemp[4] || 0}}</text>
+            </view>
+            <slider bindchange="slider4change" min="0" max="100" value="{{RGBtemp[4] || 0}}" activeColor="#ffa500" backgroundColor="#fff0e0"/>
+        </view>
+
+        <button class="btn-cmd" bindtap="touchBtn_setCommand">下发 RGB 命令</button>
+    </view>
+
+    <!-- 测试按钮 -->
+    <view class="card">
+        <button class="btn-test" bindtap="testLedBlink">测试LED闪烁</button>
+    </view>
+
+    <!-- 底部日志（可折叠） -->
+    <view class="log-section" bindtap="toggleLog">
+        <view class="log-header">
+            <text class="log-title">调试日志</text>
+            <text class="log-arrow">{{showLog ? '收起' : '展开'}}</text>
+        </view>
+        <view class="log-content" wx:if="{{showLog}}" catchtap="">
+            <scroll-view scroll-y class="log-scroll">
+                <text class="log-text">{{consoleLog}}</text>
+            </scroll-view>
+            <view class="log-actions" catchtap="">
+                <button class="btn-clear-log" catchtap="clearLog">清空日志</button>
+            </view>
+        </view>
+    </view>
 
 </view>

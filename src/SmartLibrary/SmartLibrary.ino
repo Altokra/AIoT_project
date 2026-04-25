@@ -118,6 +118,9 @@ struct BookRecord {
   int    publishYear;  // 出版年
   bool   onShelf;      // 是否在架
   unsigned long lastUpdate;
+  int    borrowCount;  // 累计借出次数
+  unsigned long totalReadingSec;  // 累计阅读时长（秒）
+  unsigned long lastBorrowTime;   // 上次借出时的 millis()
 };
 #define MAX_BOOKS 100
 BookRecord bookShelf[MAX_BOOKS];
@@ -471,11 +474,20 @@ void publishSensorData() {
 
   Serial.printf("传感器: T=%.1f P=%d\n", temperature, photoValue);
 
-  char props[384];
+  // 计算在架/借出数量
+  int onShelfCount = 0;
+  int borrowedCount = 0;
+  for (int i = 0; i < bookCount; i++) {
+    if (bookShelf[i].onShelf) onShelfCount++;
+    else borrowedCount++;
+  }
+
+  char props[512];
   sprintf(props,
           "\"Temperature\":%.1f,\"Photores\":%d,\"RED\":%d,\"GREEN\":%d,\"BLUE\":%d,"
-          "\"Switch\":%d,\"Time\":%ld}}]}",
-          temperature, photoValue, rVal, gVal, bVal, deviceSwitch ? 1 : 0, runningSec);
+          "\"Switch\":%d,\"BookCount\":%d,\"OnShelfCount\":%d,\"BorrowedCount\":%d,\"Time\":%ld}}]}",
+          temperature, photoValue, rVal, gVal, bVal, deviceSwitch ? 1 : 0,
+          bookCount, onShelfCount, borrowedCount, runningSec);
 
   char msg[512];
   sprintf(msg, "{\"services\":[{\"service_id\":\"Env\",\"properties\":{%s", props);
@@ -642,12 +654,21 @@ void onBookDetected(const String& uid) {
     if (wasOnShelf) {
       // 在架 → 借出
       Serial.println(">>> 图书已被借出（再次检测，翻转）");
+      bookShelf[idx].lastBorrowTime = millis();  // 记录借出时刻
+      bookShelf[idx].borrowCount++;              // 借出次数+1
       displayStatus("Borrowed:", bookShelf[idx].title.substring(0, 16));
       reportBookStatus(uid, false);
       ledError();
     } else {
       // 不在架 → 归还
       Serial.println(">>> 图书已归还书架（再次检测，翻转）");
+      // 计算本次阅读时长
+      if (bookShelf[idx].lastBorrowTime > 0) {
+        unsigned long readingSec = (millis() - bookShelf[idx].lastBorrowTime) / 1000;
+        bookShelf[idx].totalReadingSec += readingSec;
+        Serial.printf("    本次阅读: %lu 秒, 累计: %lu 秒\n", readingSec, bookShelf[idx].totalReadingSec);
+      }
+      bookShelf[idx].lastBorrowTime = 0;  // 清除借出时刻
       displayBook(bookShelf[idx]);
       displayStatus("Returned:", bookShelf[idx].title.substring(0, 16));
       reportBookStatus(uid, true);
@@ -735,14 +756,32 @@ void onBookRegistered(const String& uid, const String& isbn) {
 // ============================================================
 void reportBookStatus(const String& uid, bool onShelf) {
   int idx = findBookByUID(uid);
-  char statusMsg[512];
   const char* status = onShelf ? "returned" : "borrowed";
+
+  // 计算在架/借出数
+  int onShelfCnt = 0, borrowedCnt = 0;
+  for (int i = 0; i < bookCount; i++) {
+    if (bookShelf[i].onShelf) onShelfCnt++;
+    else borrowedCnt++;
+  }
+
+  // 每本书的统计数据
+  int borrowCnt = (idx >= 0) ? bookShelf[idx].borrowCount : 0;
+  unsigned long readingSec = (idx >= 0) ? bookShelf[idx].totalReadingSec : 0;
+  const char* bookTitle = (idx >= 0 && bookShelf[idx].title.length() > 0)
+                          ? bookShelf[idx].title.c_str() : "";
+
+  char statusMsg[1024];
   sprintf(statusMsg,
           "{\"services\":[{\"service_id\":\"Env\",\"properties\":{"
-          "\"book_uid\":\"%s\",\"book_isbn\":\"%s\",\"book_status\":\"%s\"}}}]}",
+          "\"book_uid\":\"%s\",\"book_isbn\":\"%s\",\"book_title\":\"%s\","
+          "\"book_status\":\"%s\","
+          "\"book_borrow_count\":%d,\"book_reading_sec\":%lu}}]}",
           uid.c_str(),
           idx >= 0 ? bookShelf[idx].isbn.c_str() : "",
-          status);
+          bookTitle,
+          status,
+          borrowCnt, readingSec);
   Serial.print(">>> 状态上报内容: ");
   Serial.println(statusMsg);
   if (mqtt.publish(TOPIC_PROP_REPORT, statusMsg)) {
@@ -810,6 +849,9 @@ bool loadBooks() {
     bookShelf[i].publishYear= b["publishYear"] | 0;
     bookShelf[i].onShelf    = b["onShelf"]     | true;
     bookShelf[i].lastUpdate = b["lastUpdate"]  | 0;
+    bookShelf[i].borrowCount = b["borrowCount"] | 0;
+    bookShelf[i].totalReadingSec = b["totalReadingSec"] | 0;
+    bookShelf[i].lastBorrowTime = b["lastBorrowTime"] | 0;
     i++;
   }
   bookCount = i;
@@ -834,6 +876,9 @@ bool saveBooks() {
     b["publishYear"] = bookShelf[i].publishYear;
     b["onShelf"]     = bookShelf[i].onShelf;
     b["lastUpdate"]  = bookShelf[i].lastUpdate;
+    b["borrowCount"] = bookShelf[i].borrowCount;
+    b["totalReadingSec"] = bookShelf[i].totalReadingSec;
+    b["lastBorrowTime"]  = bookShelf[i].lastBorrowTime;
   }
 
   File f = SPIFFS.open(BOOK_CACHE_FILE, FILE_WRITE);
