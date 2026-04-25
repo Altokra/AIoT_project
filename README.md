@@ -2,7 +2,7 @@
  * @Author: ka1shu1 cwh979946@163.com
  * @Date: 2026-04-13 18:30:12
  * @LastEditors: ka1shu1 cwh979946@163.com
- * @LastEditTime: 2026-04-23 09:43:19
+ * @LastEditTime: 2026-04-25 13:38:52
  * @FilePath: \final project\README.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -110,7 +110,7 @@ esp32连接华为云
 
 图书uid绑定isbn check
 
-难点！如何通过ISBN获取图书信息
+难点！如何通过ISBN获取图书信息 check
 
 - SmartLibrary bugs：
   - 
@@ -118,12 +118,26 @@ esp32连接华为云
   - BOOK属性无法上报：多打了个花括号
 
 
+### 04-24-2026
+
+云端查询书籍信息 check
+
+
+设备影子问题————历史遗留设备影子，删除后解决 check
+
+AI api接口接入esp32本地，实现基本问答 check
+
+
+书籍入架出架记录（修改代码），阅读时长记录，阅读感想添加
+
 ## 改进可能
 
 小程序端手动输入书籍信息（比如有些日记本、笔记本没有条形码或者条形码不具有特殊性）
 
 
 RC522感应距离过短--增加天线
+
+
 
 
 
