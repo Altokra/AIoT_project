@@ -11,12 +11,82 @@
       <view class="sensor-item">
         <view class="sensor-icon temp-icon">🌡️</view>
         <text class="sensor-label">温度</text>
-        <text class="sensor-value">{{temperature}}℃</text>
+        <text class="sensor-value">{{temperature}}</text>
       </view>
       <view class="sensor-item">
         <view class="sensor-icon light-icon">☀️</view>
         <text class="sensor-label">光照</text>
         <text class="sensor-value">{{photores}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 图书信息卡片 -->
+  <view class="card book-card">
+    <text class="card-title">📚 图书信息</text>
+
+    <!-- 无 ISBN 时 -->
+    <view wx:if="{{!bookIsbn}}" class="book-empty">
+      <text class="book-empty-text">暂无图书数据</text>
+      <text class="book-empty-hint">在设备端注册图书后，这里将显示信息</text>
+    </view>
+
+    <!-- 有 ISBN 但未查询 -->
+    <view wx:elif="{{bookIsbn && bookQueryStatus === 'idle'}}">
+      <view class="book-meta">
+        <text class="book-label">ISBN</text>
+        <text class="book-value">{{bookIsbn}}</text>
+      </view>
+      <view class="book-meta">
+        <text class="book-label">状态</text>
+        <text class="book-value">{{bookStatus}}</text>
+      </view>
+      <button class="btn-query" bindtap="touchBtn_queryBook">查询书籍信息</button>
+    </view>
+
+    <!-- 正在查询 -->
+    <view wx:elif="{{bookQueryStatus === 'querying'}}" class="book-loading">
+      <text class="book-loading-text">正在查询: {{bookIsbn}}</text>
+    </view>
+
+    <!-- 查询成功 -->
+    <view wx:elif="{{bookQueryStatus === 'success'}}" class="book-result">
+      <view class="book-meta">
+        <text class="book-label">ISBN</text>
+        <text class="book-value">{{bookIsbn}}</text>
+      </view>
+      <view class="book-meta">
+        <text class="book-label">书名</text>
+        <text class="book-value book-title-value">{{bookTitle}}</text>
+      </view>
+      <view class="book-meta">
+        <text class="book-label">作者</text>
+        <text class="book-value">{{bookAuthor}}</text>
+      </view>
+      <view class="book-meta">
+        <text class="book-label">出版社</text>
+        <text class="book-value">{{bookPublisher}}</text>
+      </view>
+      <view class="book-meta" wx:if="{{bookYear}}">
+        <text class="book-label">出版年</text>
+        <text class="book-value">{{bookYear}}</text>
+      </view>
+      <view class="book-meta">
+        <text class="book-label">设备状态</text>
+        <text class="book-value">{{bookStatus}}</text>
+      </view>
+      <button class="btn-send" bindtap="touchBtn_sendBookInfo">📤 下发到设备</button>
+    </view>
+
+    <!-- 查询失败 -->
+    <view wx:elif="{{bookQueryStatus === 'failed'}}">
+      <view class="book-meta">
+        <text class="book-label">ISBN</text>
+        <text class="book-value">{{bookIsbn}}</text>
+      </view>
+      <view class="book-failed">
+        <text>{{bookTitle}}</text>
+        <button class="btn-query" bindtap="touchBtn_queryBook">重新查询</button>
       </view>
     </view>
   </view>
@@ -29,8 +99,8 @@
       <button class="btn-off" bindtap="onClickOff">关灯</button>
     </view>
     <view class="btn-row">
-      <button class="btn-action" bindtap="touchBtn_subTopic">订阅</button>
-      <button class="btn-action" bindtap="touchBtn_getshadow">获取设备影子</button>
+      <button class="btn-action" bindtap="touchBtn_subTopic">订阅获取Token</button>
+      <button class="btn-action" bindtap="touchBtn_getshadow">刷新设备影子</button>
     </view>
     <button class="btn-cmd" bindtap="touchBtn_setCommand">下发 RGB 命令</button>
   </view>

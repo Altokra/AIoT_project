@@ -29,6 +29,8 @@
 #include <MFRC522DriverPinSimple.h>
 #include <MFRC522Debug.h>
 #include <HardwareSerial.h>
+#include <WiFiClientSecure.h>
+#include <HTTPClient.h>
 
 // ============================================================
 // OLED 配置
@@ -54,6 +56,12 @@ MFRC522             mfrc522{driver};
 // ============================================================
 const char* WIFI_SSID     = "iQOO Z9 Turbo";
 const char* WIFI_PASSWORD = "cwh979946";
+
+//api
+
+const char* DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
+const char* DEEPSEEK_API_KEY = "sk-b6e5c8309b4d45b8ba1572b5b47b11b7"; 
+
 
 // ============================================================
 // 华为云 MQTT 三元组
@@ -128,9 +136,15 @@ String   barcodeBuffer  = "";
 String   pendingNFCUID = "";  // 待注册的 NFC UID
 String   lastDetectedUID = "";  // 上次检测到的卡片 UID
 unsigned long awaitingStart = 0;  // 进入等待扫码状态的时间
-int      cardMissCount = 0;       // 连续未检测到卡片的次数
-const int CARD_MISS_THRESHOLD = 20; // 连续20次未检测到才判定离开（约1秒）
 
+
+// AI相关变量
+bool waitingForAI = false;
+unsigned long aiStartTime = 0;
+const unsigned long AI_TIMEOUT = 15000;
+int aiCallCount = 0;
+unsigned long lastAIResetDate = 0;
+const int MAX_DAILY_AI_CALLS = 50;
 // ============================================================
 // 离线图书缓存文件
 // ============================================================
@@ -147,6 +161,15 @@ void publishSensorData();
 void handleCloudCommand(char* topic, byte* payload, unsigned int length);
 void sendCommandResponse(const char* requestId, bool success);
 
+// AI函数
+bool sendToDeepSeek(String userMessage, String systemPrompt = "");
+void displayAIResponse(String response);
+void askAI(String question);
+void askBookRecommendation(String currentBookTitle);
+bool canCallAI();
+void recordAICall();
+void checkSerialCommand();
+
 // NFC
 void initNFC();
 String getUIDString();
@@ -162,7 +185,6 @@ bool saveBooks();
 int  findBookByUID(const String& uid);
 int  findBookByISBN(const String& isbn);
 void onBookDetected(const String& uid);
-void onBookRemoved(const String& uid);
 void onBookRegistered(const String& uid, const String& isbn);
 void reportBookStatus(const String& uid, bool onShelf);
 
@@ -273,7 +295,37 @@ void loop() {
     publishSensorData();
   }
 
+  // AI 超时检测
+  if (waitingForAI && (millis() - aiStartTime > AI_TIMEOUT)) {
+    waitingForAI = false;
+    Serial.println("[AI] 请求超时");
+    setRGB(0, 255, 0);
+  }
+
+  // 串口命令输入处理（调试/测试用）
+  checkSerialCommand();
+
   delay(50);
+}
+
+// ============================================================
+// 串口命令处理（调试/测试AI功能）
+// ============================================================
+void checkSerialCommand() {
+  static String inputBuffer = "";
+  while (Serial.available() > 0) {
+    char c = Serial.read();
+    if (c == '\n' || c == '\r') {
+      inputBuffer.trim();
+      if (inputBuffer.length() > 0) {
+        Serial.println("[串口] 收到命令: " + inputBuffer);
+        askAI(inputBuffer);
+        inputBuffer = "";
+      }
+    } else {
+      inputBuffer += c;
+    }
+  }
 }
 
 // ============================================================
@@ -472,24 +524,12 @@ String getUIDString() {
 }
 
 // ============================================================
-// NFC 检测主逻辑
+// NFC 检测主逻辑（Toggle 模式：再次检测同一张卡 = 状态翻转）
 // ============================================================
 void checkNFC() {
   if (!mfrc522.PICC_IsNewCardPresent()) {
-    // 无卡片 → 累计丢失计数
-    if (lastDetectedUID != "" && systemState != SystemState::AWAITING_SCAN) {
-      cardMissCount++;
-      if (cardMissCount >= CARD_MISS_THRESHOLD) {
-        onBookRemoved(lastDetectedUID);
-        lastDetectedUID = "";
-        cardMissCount = 0;
-      }
-    }
-    return;
+    return;  // 不再通过"检测不到"判断离开
   }
-
-  // 检测到卡片 → 重置丢失计数
-  cardMissCount = 0;
 
   if (!mfrc522.PICC_ReadCardSerial()) return;
 
@@ -502,18 +542,17 @@ void checkNFC() {
 
   mfrc522.PICC_HaltA();
 
-  // 忽略同一张卡重复检测
+  // 忽略同一张卡重复快速检测（50ms 间隔内）
+  static unsigned long lastTapMs = 0;
   if (uid == lastDetectedUID) {
-    Serial.println(">>> 重复检测，忽略");
-    return;
+    if (millis() - lastTapMs < 200) {
+      Serial.println(">>> 重复检测（间隔太短），忽略");
+      return;
+    }
   }
+  lastTapMs = millis();
 
-  // 卡片离开旧卡
-  if (lastDetectedUID != "" && systemState != SystemState::AWAITING_SCAN) {
-    onBookRemoved(lastDetectedUID);
-  }
-
-  // 记录新卡片
+  // 记录新卡片（触发状态翻转）
   lastDetectedUID = uid;
 
   switch (systemState) {
@@ -522,7 +561,6 @@ void checkNFC() {
       onBookDetected(uid);
       break;
     case SystemState::AWAITING_SCAN:
-      // 新卡片：切换为等待新卡片扫码
       pendingNFCUID = uid;
       awaitingStart = millis();
       displayStatus("New Book Detected", "Scan ISBN", uid.substring(0, 8));
@@ -590,24 +628,34 @@ void checkBarcode() {
 }
 
 // ============================================================
-// 图书被放置（首次检测 → 归还）
+// 图书被检测（Toggle 模式：再次检测同一张卡 = 状态翻转）
 // ============================================================
 void onBookDetected(const String& uid) {
   int idx = findBookByUID(uid);
   if (idx >= 0) {
-    if (!bookShelf[idx].onShelf) {
-      bookShelf[idx].onShelf = true;
-      bookShelf[idx].lastUpdate = millis();
-      saveBooks();
-      Serial.println(">>> 图书已归还书架");
+    // 已注册的书 → 翻转在架状态
+    bool wasOnShelf = bookShelf[idx].onShelf;
+    bookShelf[idx].onShelf = !wasOnShelf;
+    bookShelf[idx].lastUpdate = millis();
+    saveBooks();
+
+    if (wasOnShelf) {
+      // 在架 → 借出
+      Serial.println(">>> 图书已被借出（再次检测，翻转）");
+      displayStatus("Borrowed:", bookShelf[idx].title.substring(0, 16));
+      reportBookStatus(uid, false);
+      ledError();
+    } else {
+      // 不在架 → 归还
+      Serial.println(">>> 图书已归还书架（再次检测，翻转）");
       displayBook(bookShelf[idx]);
       displayStatus("Returned:", bookShelf[idx].title.substring(0, 16));
       reportBookStatus(uid, true);
       ledSuccess();
-    } else {
-      Serial.println(">>> 图书已在架（重复检测）");
-      displayBook(bookShelf[idx]);
-      ledSuccess();
+      // 归还成功后，调用 AI 推荐类似书籍
+      if (bookShelf[idx].title.length() > 0) {
+        askBookRecommendation(bookShelf[idx].title);
+      }
     }
   } else {
     // 未注册图书 → 进入等待扫码注册流程
@@ -624,16 +672,7 @@ void onBookDetected(const String& uid) {
 // 图书被取走（离开检测 → 借出）
 // ============================================================
 void onBookRemoved(const String& uid) {
-  int idx = findBookByUID(uid);
-  if (idx >= 0 && bookShelf[idx].onShelf) {
-    bookShelf[idx].onShelf = false;
-    bookShelf[idx].lastUpdate = millis();
-    saveBooks();
-    Serial.println(">>> 图书已被借出");
-    displayStatus("Borrowed:", bookShelf[idx].title.substring(0, 16));
-    reportBookStatus(uid, false);
-    ledError();
-  }
+  // 已移除：不再通过"检测不到"判断借出，改用 Toggle 模式
 }
 
 // ============================================================
@@ -868,4 +907,125 @@ void ledError() {
 
 void ledWaiting() {
   setRGB(255, 255, 0);  // 黄色闪烁
+}
+
+
+// ============================================================
+// AI功能实现（直接复制测试程序中的这些函数）
+// ============================================================
+
+bool canCallAI() {
+  if (millis() - lastAIResetDate > 86400000) {
+    aiCallCount = 0;
+    lastAIResetDate = millis();
+  }
+  return aiCallCount < MAX_DAILY_AI_CALLS;
+}
+
+void recordAICall() {
+  aiCallCount++;
+}
+
+bool sendToDeepSeek(String userMessage, String systemPrompt) {
+  if (!canCallAI()) return false;
+  if (WiFi.status() != WL_CONNECTED) return false;
+  if (String(DEEPSEEK_API_KEY).length() < 10) return false;
+  
+  waitingForAI = true;
+  aiStartTime = millis();
+  
+  WiFiClientSecure client;
+  HTTPClient https;
+  client.setInsecure();
+  
+  https.begin(client, DEEPSEEK_API_URL);
+  https.addHeader("Content-Type", "application/json");
+  https.addHeader("Authorization", String("Bearer ") + DEEPSEEK_API_KEY);
+  
+  StaticJsonDocument<2048> doc;
+  doc["model"] = "deepseek-chat";
+  doc["temperature"] = 0.7;
+  doc["max_tokens"] = 500;
+  
+  JsonArray messages = doc["messages"].to<JsonArray>();
+  
+  if (systemPrompt.length() == 0) {
+    systemPrompt = "你是图书馆助手，回答极简，50字以内。";
+  }
+  JsonObject systemMsg = messages.add<JsonObject>();
+  systemMsg["role"] = "system";
+  systemMsg["content"] = systemPrompt;
+  
+  JsonObject userMsg = messages.add<JsonObject>();
+  userMsg["role"] = "user";
+  userMsg["content"] = userMessage;
+  
+  String requestBody;
+  serializeJson(doc, requestBody);
+  
+  int httpCode = https.POST(requestBody);
+  bool success = false;
+
+  Serial.printf("[AI] HTTP响应码: %d\n", httpCode);
+
+  if (httpCode == HTTP_CODE_OK) {
+    String response = https.getString();
+    Serial.printf("[AI] 原始响应长度: %d bytes\n", response.length());
+    Serial.println("[AI] 原始响应内容: " + response);
+
+    StaticJsonDocument<8192> responseDoc;
+    DeserializationError error = deserializeJson(responseDoc, response);
+    if (!error) {
+      String aiReply = responseDoc["choices"][0]["message"]["content"] | "";
+      Serial.println("[AI] 解析后回复: " + aiReply);
+      displayAIResponse(aiReply);
+      recordAICall();
+      success = true;
+    } else {
+      Serial.println("[AI] JSON解析失败: " + String(error.c_str()));
+    }
+  } else {
+    Serial.printf("[AI] HTTP错误: %d\n", httpCode);
+    String errorBody = https.getString();
+    Serial.println("[AI] 错误内容: " + errorBody);
+  }
+
+  https.end();
+  waitingForAI = false;
+  return success;
+}
+
+void displayAIResponse(String response) {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("AI:");
+  
+  int startPos = 0;
+  for (int i = 0; i < 3 && startPos < response.length(); i++) {
+    String line = response.substring(startPos, startPos + 20);
+    display.setCursor(0, 14 + i * 12);
+    display.println(line);
+    startPos += 20;
+  }
+  display.display();
+  delay(5000);
+  
+  // 恢复显示
+  displayStatus("Smart Library", "Monitoring...", "Scan a book...");
+}
+
+void askAI(String question) {
+  if (waitingForAI) return;
+  Serial.println("[AI] 问题: " + question);
+  displayStatus("Asking AI...", question.substring(0, 16), "");
+  ledWaiting();
+  sendToDeepSeek(question, "");
+  if (systemState == SystemState::IDLE) setRGB(0, 255, 0);
+}
+
+void askBookRecommendation(String currentBookTitle) {
+  if (currentBookTitle.length() == 0) return;
+  String question = "推荐2本类似《" + currentBookTitle + "》的书，每本10字内理由";
+  sendToDeepSeek(question, "你是图书推荐专家，回答极简。");
 }

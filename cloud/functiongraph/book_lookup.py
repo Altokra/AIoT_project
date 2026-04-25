@@ -82,7 +82,7 @@ def extract_isbn(event):
 # 查询图书信息 API（data.isbn.work）
 # ------------------------------------------------------------------
 def query_open_library(isbn, logger):
-    app_key = "ae1718d4587744b0b79f940fbef69e77"
+    app_key = "67be51887a21441bb3a7dca432997f2a"
     url = (
         "https://data.isbn.work/openApi/getInfoByIsbn"
         "?isbn=" + isbn + "&appKey=" + app_key
