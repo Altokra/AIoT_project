@@ -407,3 +407,79 @@ page {
   color: #16a34a;
   margin-top: 2px;
 }
+
+/* ========== 读书笔记 ========== */
+.notes-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.note-input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.note-input {
+  flex: 1;
+  height: 40px;
+  background: #f8fafc;
+  border-radius: 20px;
+  padding: 0 16px;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.btn-add-note {
+  width: 70px;
+  height: 40px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-add-note[disabled] {
+  background: #e2e8f0;
+  color: #94a3b8;
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.note-item {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.note-content {
+  display: block;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+  word-break: break-all;
+  margin-bottom: 6px;
+}
+
+.note-time {
+  display: block;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.notes-empty {
+  text-align: center;
+  padding: 20px 0;
+  font-size: 13px;
+  color: #94a3b8;
+}

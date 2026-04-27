@@ -44,15 +44,14 @@
         </view>
 
         <view class="env-card light-card">
-            <view class="env-icon-large">
-                <text class="icon-large">光照</text>
-            </view>
-            <view class="env-data">
-                <text class="data-value">{{photores}}</text>
-                <text class="data-label">光照强度</text>
+            <view class="env-ring light-ring">
+                <view class="ring-center">
+                    <text class="ring-value">{{photores}}</text>
+                    <text class="ring-label">光照</text>
+                </view>
             </view>
             <view class="env-tip">
-                <text>{{photores > 600 ? '光线充足' : '光线偏暗'}}</text>
+                <text>{{photores < 200 ? '光线充足' : photores > 600 ? '光线偏暗' : '光线一般'}}</text>
             </view>
         </view>
     </view>
@@ -81,32 +80,6 @@
                 <view class="led-item">
                     <view class="led-dot temp {{ledStatus.temp}}"></view>
                     <text class="led-text">温度告警</text>
-                </view>
-            </view>
-        </view>
-
-        <view class="rgb-legend">
-            <view class="legend-title">灯光说明</view>
-            <view class="legend-list">
-                <view class="legend-item">
-                    <view class="legend-color green-bg"></view>
-                    <text class="legend-text">绿灯常亮：系统正常</text>
-                </view>
-                <view class="legend-item">
-                    <view class="legend-color blue-bg"></view>
-                    <text class="legend-text">蓝灯闪一下：图书归还</text>
-                </view>
-                <view class="legend-item">
-                    <view class="legend-color red-bg"></view>
-                    <text class="legend-text">红灯闪一下：图书借出</text>
-                </view>
-                <view class="legend-item">
-                    <view class="legend-color red-blink"></view>
-                    <text class="legend-text">红灯慢闪：网络异常</text>
-                </view>
-                <view class="legend-item">
-                    <view class="legend-color red-blink-fast"></view>
-                    <text class="legend-text">红灯快闪：温度过高</text>
                 </view>
             </view>
         </view>
@@ -147,6 +120,47 @@
             </view>
             <text class="shelf-btn-arrow">›</text>
         </view>
+    </view>
+
+    <!-- 云端连接 -->
+    <view class="connect-section">
+        <button class="btn-connect {{isConnected ? 'connected' : ''}}" bindtap="touchBtn_subTopic" disabled="{{isConnected}}">
+            {{isConnected ? '已连接' : '连接云端'}}
+        </button>
+    </view>
+
+    <!-- AI 助手入口 -->
+    <view class="ai-entry">
+        <view class="ai-btn" bindtap="gotoAI">
+            <view class="ai-btn-icon">🤖</view>
+            <view class="ai-btn-info">
+                <text class="ai-btn-title">AI 助手</text>
+                <text class="ai-btn-sub">智能问答与系统咨询</text>
+            </view>
+            <text class="ai-btn-arrow">›</text>
+        </view>
+    </view>
+
+    <!-- 风扇控制 -->
+    <view class="fan-control">
+        <view class="fan-card">
+            <!-- 左侧状态 -->
+            <view class="fan-left">
+                <view class="fan-icon-badge {{fanActive ? 'active' : ''}}">
+                    <text class="fan-icon-text">🌀</text>
+                </view>
+                <view class="fan-text">
+                    <text class="fan-name">风扇</text>
+                   
+                </view>
+            </view>
+            <!-- 右侧按钮（上下排列）-->
+            <view class="fan-right">
+                <button class="fan-btn fan-btn-on {{fanActive ? 'on-active' : ''}}" bindtap="fanOn" disabled="{{isFanManualOn}}">开</button>
+                <button class="fan-btn fan-btn-off {{!fanActive ? 'off-active' : ''}}" bindtap="fanOff" disabled="{{!isFanManualOn && !fanActive}}">关</button>
+            </view>
+        </view>
+        
     </view>
 
     <!-- 最近动态时间线 -->

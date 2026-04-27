@@ -78,7 +78,7 @@
 
     <!-- 详情弹出层 -->
     <view class="detail-overlay" wx:if="{{showDetail}}" bindtap="closeDetail">
-        <view class="detail-panel" catchtap="">
+        <view class="detail-panel" catchtap="preventBubble">
             <view class="detail-header">
                 <text class="detail-title">{{detailBook.displayTitle}}</text>
                 <view class="detail-close" bindtap="closeDetail">
@@ -110,7 +110,7 @@
             </view>
 
             <!-- 借还历史 -->
-            <view class="detail-section" wx:if="{{detailBook.history.length > 0}}">
+            <view class="detail-section" wx:if="{{detailBook.history && detailBook.history.length > 0}}">
                 <text class="detail-section-title">借还记录</text>
                 <view class="history-list">
                     <view class="history-item" wx:for="{{detailBook.history}}" wx:for-item="evt" wx:for-index="idx" wx:key="idx">
@@ -121,6 +121,24 @@
                             <text class="history-duration" wx:if="{{evt.durationDisplay}}">{{evt.durationDisplay}}</text>
                         </view>
                     </view>
+                </view>
+            </view>
+
+            <!-- 读书笔记 -->
+            <view class="detail-section notes-section">
+                <text class="detail-section-title">读书笔记</text>
+                <view class="note-input-row">
+                    <input class="note-input" placeholder="写下你的读书心得..." value="{{noteInput}}" bindinput="onNoteInput" maxlength="500" />
+                    <button class="btn-add-note" bindtap="addNote" disabled="{{!noteInput}}">发布</button>
+                </view>
+                <view class="notes-list" wx:if="{{detailBook.notes && detailBook.notes.length > 0}}">
+                    <view class="note-item" wx:for="{{detailBook.notes}}" wx:key="timestamp">
+                        <text class="note-content">{{item.content}}</text>
+                        <text class="note-time">{{item.noteTimeDisplay}}</text>
+                    </view>
+                </view>
+                <view class="notes-empty" wx:else>
+                    <text>还没有笔记，写下第一条吧</text>
                 </view>
             </view>
         </view>

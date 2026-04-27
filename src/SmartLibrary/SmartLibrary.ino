@@ -144,6 +144,7 @@ int      rVal = 255, gVal = 255, bVal = 255;
 bool     deviceSwitch = false;
 float    humidity = 0;
 bool     fanActive = false;
+bool     fanManualOverride = false;  // true = 手动开启，风扇常转不受湿度控制
 
 String   barcodeBuffer  = "";
 String   pendingNFCUID = "";  // 待注册的 NFC UID
@@ -234,7 +235,7 @@ void setup() {
   pinMode(RGB_B, OUTPUT);
   pinMode(PHOTORESISTOR_PIN, INPUT);
   pinMode(FAN_PIN, OUTPUT);
-  analogWrite(FAN_PIN, 0);
+  digitalWrite(FAN_PIN, HIGH);  // PNP初始关闭（HIGH=三极管截止）
   setRGB(255, 255, 255);  // 白色等待
 
   // ----- I2C 初始化 -----
@@ -435,6 +436,20 @@ void handleCloudCommand(char* topic, byte* payload, unsigned int length) {
       setRGB(255, 255, 255);
     }
   }
+  else if (cmdName == "FanControl") {
+    String fanCmd = doc["paras"]["fan"] | "off";
+    if (fanCmd == "on") {
+      fanManualOverride = true;
+      digitalWrite(FAN_PIN, LOW);  // PNP 低电平导通
+      fanActive = true;
+      Serial.println("[命令] 风扇强制开启");
+    } else {
+      fanManualOverride = false;
+      digitalWrite(FAN_PIN, HIGH);  // PNP 高电平关闭
+      fanActive = false;
+      Serial.println("[命令] 风扇控制交还湿度自动");
+    }
+  }
   else if (cmdName == "deliver_book_info") {
     // 云端爬取书籍信息后下发的命令
     String isbn      = doc["paras"]["isbn"]      | "";
@@ -534,30 +549,31 @@ void publishSensorData() {
   sprintf(hStr, "%.0f%%", humidity);
   display.clearDisplay();
   display.setTextSize(1);
+  display.setTextColor(WHITE);
   display.setCursor(0, 0);
-  display.printf("T:%s  H:%s  P:%s", tStr, hStr, pStr);
-  display.setTextSize(1);
+  display.printf("T:%s H:%.0f%%", tStr, humidity);
   display.setCursor(0, 16);
-  display.printf("Books:%d Fan:%s", bookCount, fanActive ? "ON" : "OFF");
+  display.printf("L:%d B:%d F:%s", photoValue, bookCount, fanActive ? "ON" : "OFF");
   display.display();
 }
 
 // ============================================================
-// 风扇联动：湿度超过阈值自动启动
+// 风扇联动：湿度超过阈值自动启动（PNP低边开关）
+// GPIO LOW = PNP导通 = 风扇转，GPIO HIGH = PNP截止 = 风扇停
 // ============================================================
 void updateFan() {
+  if (fanManualOverride) return;  // 手动开启时跳过自动逻辑
+
   if (humidity > HUMIDITY_THRESHOLD) {
     if (!fanActive) {
       fanActive = true;
+      digitalWrite(FAN_PIN, LOW);  // LOW → 三极管导通 → 风扇启动
       Serial.printf("湿度 %.0f%% > %d%%，风扇启动\n", humidity, HUMIDITY_THRESHOLD);
     }
-    // PWM 占空比：湿度越高，转速越快
-    int pwm = map(constrain((int)humidity, HUMIDITY_THRESHOLD, 100), HUMIDITY_THRESHOLD, 100, 128, 255);
-    analogWrite(FAN_PIN, pwm);
   } else {
     if (fanActive) {
       fanActive = false;
-      analogWrite(FAN_PIN, 0);
+      digitalWrite(FAN_PIN, HIGH);  // HIGH → 三极管关断 → 风扇停止
       Serial.printf("湿度 %.0f%% <= %d%%，风扇停止\n", humidity, HUMIDITY_THRESHOLD);
     }
   }
@@ -705,23 +721,21 @@ void onBookDetected(const String& uid) {
     if (wasOnShelf) {
       // 在架 → 借出
       Serial.println(">>> 图书已被借出（再次检测，翻转）");
-      bookShelf[idx].lastBorrowTime = millis();  // 记录借出时刻
-      bookShelf[idx].borrowCount++;              // 借出次数+1
-      displayStatus("Borrowed:", bookShelf[idx].title.substring(0, 16));
+      bookShelf[idx].lastBorrowTime = millis();
+      bookShelf[idx].borrowCount++;
+      displayStatus("Borrowed", "");
       reportBookStatus(uid, false);
       ledError();
     } else {
       // 不在架 → 归还
       Serial.println(">>> 图书已归还书架（再次检测，翻转）");
-      // 计算本次阅读时长
       if (bookShelf[idx].lastBorrowTime > 0) {
         unsigned long readingSec = (millis() - bookShelf[idx].lastBorrowTime) / 1000;
         bookShelf[idx].totalReadingSec += readingSec;
         Serial.printf("    本次阅读: %lu 秒, 累计: %lu 秒\n", readingSec, bookShelf[idx].totalReadingSec);
       }
-      bookShelf[idx].lastBorrowTime = 0;  // 清除借出时刻
-      displayBook(bookShelf[idx]);
-      displayStatus("Returned:", bookShelf[idx].title.substring(0, 16));
+      bookShelf[idx].lastBorrowTime = 0;
+      displayStatus("Returned", "");
       reportBookStatus(uid, true);
       ledSuccess();
       // 归还成功后，调用 AI 推荐类似书籍
@@ -945,18 +959,14 @@ bool saveBooks() {
 // ============================================================
 void displayStatus(const String& line1, const String& line2, const String& line3) {
   display.clearDisplay();
-  display.setTextSize(1);
+  display.setTextSize(2);
   display.setTextColor(WHITE);
-  display.setCursor(0, 10);
+  // 借还状态居中显示
+  int16_t x1, y1;
+  uint16_t w, h;
+  display.getTextBounds(line1.c_str(), 0, 0, &x1, &y1, &w, &h);
+  display.setCursor((128 - w) / 2, 20);
   display.println(line1);
-  if (line2.length() > 0) {
-    display.setCursor(0, 26);
-    display.println(line2);
-  }
-  if (line3.length() > 0) {
-    display.setCursor(0, 42);
-    display.println(line3);
-  }
   display.display();
 }
 
@@ -990,7 +1000,7 @@ void setRGB(int r, int g, int b) {
 }
 
 void ledSuccess() {
-  setRGB(0, 255, 0);  // 绿色闪烁
+  setRGB(0, 0, 255);  // 蓝色 = 还书
   delay(1000);
   if (systemState == SystemState::IDLE) setRGB(0, 255, 0);
 }

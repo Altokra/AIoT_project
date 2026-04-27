@@ -1,0 +1,46 @@
+<!-- pages/ai_chat/ai_chat.wxml -->
+<view class="page-container">
+
+    <!-- 顶部标题 -->
+    <view class="chat-header">
+        <text class="header-title">AI 助手</text>
+        <view class="btn-clear" bindtap="onClear">清空</view>
+    </view>
+
+    <!-- 消息列表 -->
+    <scroll-view scroll-y class="message-list" scroll-top="{{scrollTop}}" scroll-with-animation="true">
+        <block wx:for="{{messages}}" wx:key="index">
+            <view class="message-item {{item.role}}">
+                <view class="avatar-icon">{{item.role === 'user' ? '👤' : '🤖'}}</view>
+                <view class="message-bubble">
+                    <text class="message-text">{{item.content}}</text>
+                </view>
+            </view>
+        </block>
+
+        <!-- thinking 状态 -->
+        <view class="message-item assistant" wx:if="{{thinking}}">
+            <view class="avatar-icon">🤖</view>
+            <view class="message-bubble thinking">
+                <text class="thinking-dots">思考中...</text>
+            </view>
+        </view>
+    </scroll-view>
+
+    <!-- 输入区域 -->
+    <view class="input-area">
+        <input
+            class="text-input"
+            value="{{inputText}}"
+            bindinput="onInputChange"
+            bindconfirm="onSend"
+            placeholder="输入问题..."
+            confirm-type="send"
+            maxlength="500"
+        />
+        <button class="btn-send" bindtap="onSend" disabled="{{!inputText || thinking}}">
+            发送
+        </button>
+    </view>
+
+</view>

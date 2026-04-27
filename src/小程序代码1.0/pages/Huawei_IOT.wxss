@@ -96,7 +96,11 @@ page {
 }
 
 .light-card {
-  background: linear-gradient(135deg, #fff 0%, #fff7ed 100%);
+  background: linear-gradient(135deg, #fff 0%, #fffbeb 100%);
+}
+
+.light-ring {
+  background: #fef3c7;
 }
 
 .env-ring {
@@ -388,7 +392,7 @@ page {
 /* ========== 书架入口 ========== */
 .shelf-entry {
   padding: 0 20px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .shelf-btn {
@@ -426,6 +430,196 @@ page {
 .shelf-btn-arrow {
   font-size: 24px;
   color: rgba(255, 255, 255, 0.6);
+}
+
+/* ========== 连接按钮 ========== */
+.connect-section {
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+.btn-connect {
+  width: 100%;
+  height: 48px;
+  border-radius: 24px;
+  background: #e0e7ff;
+  color: #4f46e5;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-connect.connected {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* ========== AI 助手入口 ========== */
+.ai-entry {
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+.ai-btn {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: 0 4px 16px rgba(17, 153, 142, 0.25);
+}
+
+.ai-btn-icon {
+  font-size: 28px;
+  margin-right: 14px;
+}
+
+.ai-btn-info {
+  flex: 1;
+}
+
+.ai-btn-title {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+.ai-btn-sub {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+}
+
+.ai-btn-arrow {
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ========== 风扇控制 ========== */
+.fan-control {
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+.fan-card {
+  background: white;
+  border-radius: 20px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.fan-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fan-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fan-icon-badge.active {
+  background: #dbeafe;
+}
+
+.fan-icon-badge.active .fan-icon-text {
+  display: inline-block;
+  animation: fan-spin 1s linear infinite;
+}
+
+@keyframes fan-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.fan-icon-text {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.fan-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fan-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fan-state {
+  font-size: 13px;
+}
+
+.fan-state.state-on {
+  color: #059669;
+}
+
+.fan-state.state-off {
+  color: #94a3b8;
+}
+
+.fan-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fan-btn {
+  width: 48px;
+  height: 34px;
+  border-radius: 17px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fan-btn-on {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.fan-btn-on.on-active,
+.fan-btn-on:not([disabled]) {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+}
+
+.fan-btn-off {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.fan-btn-off.off-active {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.fan-tip {
+  text-align: center;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 8px;
+  padding: 0 4px;
 }
 
 /* ========== 时间线 ========== */

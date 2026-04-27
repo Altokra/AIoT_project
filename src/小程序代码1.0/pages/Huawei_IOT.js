@@ -78,6 +78,10 @@ Page({
         lastEventType: '',
         lastEventTime: 0,
         lastProcessedEvent: '',  // 去重：防止重复触发 OBS 写入
+
+        // 风扇状态
+        fanActive: false,
+        isFanManualOn: false,  // 手动开启标志（不受湿度自动控制影响）
     },
 
     // ============== 按钮事件 ==============
@@ -89,6 +93,44 @@ Page({
     touchBtn_getshadow: function() {
         this.addLog('手动刷新设备影子...');
         this.getShadow();
+    },
+
+    // ============== 风扇手动控制 ==============
+    fanOn: function() {
+        this.setData({ isFanManualOn: true });
+        this.sendFanCommand(true);
+        this.addLog('手动开启风扇');
+    },
+
+    fanOff: function() {
+        this.setData({ isFanManualOn: false });
+        this.sendFanCommand(false);
+        this.addLog('手动关闭风扇');
+    },
+
+    sendFanCommand: function(on) {
+        var that = this;
+        var token = wx.getStorageSync('token');
+        if (!token) {
+            this.addLog('无 Token，无法下发风扇命令');
+            return;
+        }
+        wx.request({
+            url: 'https://' + iotdahttps + '/v5/iot/' + projectId + '/devices/' + deviceId + '/commands',
+            data: JSON.stringify({
+                service_id: "Env",
+                command_name: "FanControl",
+                paras: { fan: on ? "on" : "off" }
+            }),
+            method: 'POST',
+            header: { 'content-type': 'application/json', 'X-Auth-Token': token },
+            success: function(res) {
+                that.addLog('风扇命令下发' + (on ? '开启' : '关闭'));
+            },
+            fail: function() {
+                that.addLog('风扇命令下发失败');
+            }
+        });
     },
 
     touchBtn_setCommand: function() {
@@ -232,12 +274,12 @@ Page({
             method: 'GET',
             header: { 'content-type': 'application/json', 'X-Auth-Token': token },
             success: function(res) {
+                that.addLog('设备影子响应: ' + JSON.stringify(res.data).substring(0, 200));
                 if (!res.data.shadow || !res.data.shadow[0]) {
                     that.addLog('设备影子为空');
                     return;
                 }
                 that.parseShadowData(res.data);
-                that.addLog('设备影子获取成功');
                 that.setData({ lastUpdateTime: new Date().toLocaleString() });
             },
             fail: function(err) {
@@ -255,8 +297,12 @@ Page({
 
     // ============== 解析设备影子数据 ==============
     parseShadowData: function(data) {
-        var reported = data.shadow[0].reported;
-        var props = reported.properties || reported || {};
+        // 兼容 Huawei IoTDA 设备影子格式：shadow[0].reported.properties
+        var shadow = data.shadow ? data.shadow[0] : data;
+        var reported = shadow.reported || shadow;
+        var props = reported.properties || reported;
+
+        this.addLog('设备影子数据: BookCount=' + (props.BookCount || 0) + ' OnShelf=' + (props.OnShelfCount || 0) + ' Borrowed=' + (props.BorrowedCount || 0));
 
         // 传感器数据
         var temperature = props.Temperature;
@@ -266,17 +312,16 @@ Page({
         var green = props.GREEN || 0;
         var blue = props.BLUE || 0;
 
-        // 图书数据
-        var bookUid = props.book_uid || '';
-        var bookIsbn = props.book_isbn || '';
-        var bookStatus = props.book_status || '';
+        // 图书数据（与 sensor 数据一致，都从 props 读）
+        var bookUid = props.book_uid || props.BookUid || '';
+        var bookIsbn = props.book_isbn || props.BookIsbn || '';
+        var bookStatus = props.book_status || props.BookStatus || '';
 
         // 藏书统计数据（优先使用 ESP32 上报的值）
-        var bookCount = props.BookCount || 0;
-        var onShelfCount = props.OnShelfCount || 0;
-        var borrowedCount = props.BorrowedCount || 0;
-        var bookList = props.BookList || [];
-        var newEvents = props.RecentEvents || [];
+        var bookCount = props.BookCount || props.bookCount || 0;
+        var onShelfCount = props.OnShelfCount || props.onShelfCount || 0;
+        var borrowedCount = props.BorrowedCount || props.borrowedCount || 0;
+        var newEvents = props.RecentEvents || props.recentEvents || [];
 
         // 检测新事件
         var newEventType = null;
@@ -426,6 +471,11 @@ Page({
     // ============== 跳转到书架页 ==============
     gotoBookshelf: function() {
         wx.navigateTo({ url: '/pages/bookshelf/bookshelf' });
+    },
+
+    // ============== 跳转到 AI 对话页 ==============
+    gotoAI: function() {
+        wx.navigateTo({ url: '/pages/ai_chat/ai_chat' });
     },
 
     // ============== 手动刷新 ==============

@@ -15,6 +15,7 @@ Page({
         borrowedCount: 0,
         showDetail: false,
         detailBook: null,
+        noteInput: '',
     },
 
     onLoad: function() {
@@ -95,12 +96,58 @@ Page({
     // ============== 点击图书卡片查看详情 ==============
     onBookTap: function(e) {
         var book = this.data.bookList[e.currentTarget.dataset.index];
+        // 预计算笔记时间显示
+        if (book.notes && book.notes.length > 0) {
+            for (var i = 0; i < book.notes.length; i++) {
+                book.notes[i].noteTimeDisplay = this.formatNoteTime(book.notes[i].timestamp);
+            }
+        }
         this.setData({ showDetail: true, detailBook: book });
     },
 
+    // ============== 阻止冒泡（防止点击面板内容时关闭）==============
+    preventBubble: function() {},
+
     // ============== 关闭详情 ==============
     closeDetail: function() {
-        this.setData({ showDetail: false, detailBook: null });
+        this.setData({ showDetail: false, detailBook: null, noteInput: '' });
+    },
+
+    // ============== 笔记输入 ==============
+    onNoteInput: function(e) {
+        this.setData({ noteInput: e.detail.value });
+    },
+
+    // ============== 添加笔记 ==============
+    addNote: function() {
+        var that = this;
+        var content = (this.data.noteInput || '').trim();
+        if (!content) {
+            wx.showToast({ title: '请输入笔记内容', icon: 'none' });
+            return;
+        }
+        var book = this.data.detailBook;
+        if (!book || !book.isbn) return;
+
+        var note = {
+            content: content,
+            timestamp: Date.now(),
+            noteTimeDisplay: this.formatNoteTime(Date.now())
+        };
+        book.notes = book.notes || [];
+        book.notes.unshift(note);
+
+        this.obsPut('book/' + book.isbn + '.json', book, function(success) {
+            if (success) {
+                that.setData({
+                    detailBook: book,
+                    noteInput: ''
+                });
+                wx.showToast({ title: '笔记已保存', icon: 'success' });
+            } else {
+                wx.showToast({ title: '保存失败', icon: 'none' });
+            }
+        });
     },
 
     // ============== 刷新 ==============
@@ -133,6 +180,15 @@ Page({
             return Math.round(sec / 3600) + '小时';
         }
         return Math.round(sec / 60) + '分钟';
+    },
+
+    // ============== 格式化笔记时间 ==============
+    formatNoteTime: function(timestamp) {
+        if (!timestamp) return '';
+        var date = new Date(timestamp);
+        return (date.getMonth() + 1) + '/' + date.getDate() + ' ' +
+            date.getHours().toString().padStart(2, '0') + ':' +
+            date.getMinutes().toString().padStart(2, '0');
     },
 
     // ============== OBS GET ==============
@@ -185,6 +241,27 @@ Page({
             },
             fail: function() {
                 callback([]);
+            }
+        });
+    },
+
+    // ============== OBS PUT ==============
+    obsPut: function(key, data, callback) {
+        var body = JSON.stringify(data, null, 0);
+        wx.request({
+            url: 'https://' + OBS_BUCKET + '.' + OBS_ENDPOINT + '/' + key,
+            method: 'PUT',
+            data: body,
+            header: { 'Content-Type': 'application/json' },
+            success: function(res) {
+                if (res.statusCode === 200 || res.statusCode === 201) {
+                    if (callback) callback(true);
+                } else {
+                    if (callback) callback(false);
+                }
+            },
+            fail: function() {
+                if (callback) callback(false);
             }
         });
     },

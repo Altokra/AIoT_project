@@ -1,7 +1,8 @@
 {
     "pages": [
         "pages/Huawei_IOT",
-        "pages/bookshelf/bookshelf"
+        "pages/bookshelf/bookshelf",
+        "pages/ai_chat/ai_chat"
     ],
     "window": {
         "backgroundTextStyle": "dark",
