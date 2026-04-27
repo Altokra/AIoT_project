@@ -2,7 +2,7 @@
  * @Author: ka1shu1 cwh979946@163.com
  * @Date: 2026-04-13 18:30:12
  * @LastEditors: ka1shu1 cwh979946@163.com
- * @LastEditTime: 2026-04-25 13:38:52
+ * @LastEditTime: 2026-04-27 19:26:22
  * @FilePath: \final project\README.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -128,7 +128,7 @@ esp32连接华为云
 AI api接口接入esp32本地，实现基本问答 check
 
 
-书籍入架出架记录（修改代码），阅读时长记录，阅读感想添加
+书籍入架出架记录（修改代码），阅读时长记录，阅读感想添加  check
 
 
 ### 04-25-2026
@@ -140,7 +140,14 @@ AI api接口接入esp32本地，实现基本问答 check
 
 ### 04-26-2026
 
-增加湿度检测及PWM波驱动电机除湿
+增加湿度检测及PWM波驱动电机除湿 check
+
+### 04-27-2026
+
+小程序优化，增加AI对话 check
+
+温度报警 check
+
 
 
 ## 改进可能
@@ -152,5 +159,7 @@ RC522感应距离过短--增加天线
 
 
 
+
+完结撒花
 
 
