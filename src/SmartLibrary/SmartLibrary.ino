@@ -7,6 +7,7 @@
   2. 条码扫描注册新书（云端爬取信息）
   3. 离线本地缓存
   4. 华为云 MQTT 状态上报
+  5. DHT11 湿度检测 + 风扇自动联动
 
   引脚分配：
   - NFC (HSPI):   SDA=15, SCK=14, MOSI=13, MISO=12, RST=4
@@ -14,6 +15,8 @@
   - I2C:          SDA=21, SCL=22 (BMP280 + OLED)
   - RGB LED:      R=16, G=17, B=18
   - 光敏:         GPIO 32
+  - DHT11:        GPIO 23
+  - 风扇电机:     GPIO 26 (PWM)
 */
 
 #include <Arduino.h>
@@ -31,6 +34,7 @@
 #include <HardwareSerial.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
+#include <DHTesp.h>
 
 // ============================================================
 // OLED 配置
@@ -94,6 +98,10 @@ const int   MQTT_PORT       = 1883;
 #define BARCODE_RX_PIN       25   //803DTXD
 #define BARCODE_BAUD         9600
 #define NFC_RST_PIN          4
+#define DHT11_PIN            23
+DHTesp              dht;
+#define FAN_PIN              19
+#define HUMIDITY_THRESHOLD   70  // 湿度超过70%启动风扇
 
 // ============================================================
 // 系统状态机
@@ -134,6 +142,8 @@ long     lastSensorReport = 0;
 int      photoValue;
 int      rVal = 255, gVal = 255, bVal = 255;
 bool     deviceSwitch = false;
+float    humidity = 0;
+bool     fanActive = false;
 
 String   barcodeBuffer  = "";
 String   pendingNFCUID = "";  // 待注册的 NFC UID
@@ -163,6 +173,7 @@ void reconnectMQTT();
 void publishSensorData();
 void handleCloudCommand(char* topic, byte* payload, unsigned int length);
 void sendCommandResponse(const char* requestId, bool success);
+void updateFan();
 
 // AI函数
 bool sendToDeepSeek(String userMessage, String systemPrompt = "");
@@ -222,6 +233,8 @@ void setup() {
   pinMode(RGB_G, OUTPUT);
   pinMode(RGB_B, OUTPUT);
   pinMode(PHOTORESISTOR_PIN, INPUT);
+  pinMode(FAN_PIN, OUTPUT);
+  analogWrite(FAN_PIN, 0);
   setRGB(255, 255, 255);  // 白色等待
 
   // ----- I2C 初始化 -----
@@ -241,6 +254,10 @@ void setup() {
   if (!bmp280.begin(0x76)) {
     Serial.println("BMP280 初始化失败");
   }
+
+  // ----- DHT11 初始化 -----
+  dht.setup(DHT11_PIN, DHTesp::DHT11);
+  Serial.println("DHT11 初始化完成");
 
   // ----- SPIFFS 初始化 -----
   if (!SPIFFS.begin(true)) {
@@ -472,7 +489,19 @@ void publishSensorData() {
   photoValue  = analogRead(PHOTORESISTOR_PIN);
   long runningSec = millis() / 1000;
 
-  Serial.printf("传感器: T=%.1f P=%d\n", temperature, photoValue);
+  // 读取 DHT11 湿度
+  TempAndHumidity th = dht.getTempAndHumidity();
+  if (dht.getStatus() == DHTesp::ERROR_NONE) {
+    humidity = th.humidity;
+  } else {
+    humidity = 0;
+    Serial.printf("DHT11 读取失败: %s\n", dht.getStatusString());
+  }
+
+  // 风扇联动
+  updateFan();
+
+  Serial.printf("传感器: T=%.1f H=%.0f%% P=%d Fan=%d\n", temperature, humidity, photoValue, fanActive ? 1 : 0);
 
   // 计算在架/借出数量
   int onShelfCount = 0;
@@ -484,9 +513,9 @@ void publishSensorData() {
 
   char props[512];
   sprintf(props,
-          "\"Temperature\":%.1f,\"Photores\":%d,\"RED\":%d,\"GREEN\":%d,\"BLUE\":%d,"
+          "\"Temperature\":%.1f,\"Humidity\":%.0f,\"Photores\":%d,\"RED\":%d,\"GREEN\":%d,\"BLUE\":%d,"
           "\"Switch\":%d,\"BookCount\":%d,\"OnShelfCount\":%d,\"BorrowedCount\":%d,\"Time\":%ld}}]}",
-          temperature, photoValue, rVal, gVal, bVal, deviceSwitch ? 1 : 0,
+          temperature, humidity, photoValue, rVal, gVal, bVal, deviceSwitch ? 1 : 0,
           bookCount, onShelfCount, borrowedCount, runningSec);
 
   char msg[512];
@@ -499,17 +528,39 @@ void publishSensorData() {
   }
 
   // OLED 显示
-  char tStr[16], pStr[16];
+  char tStr[16], pStr[16], hStr[16];
   dtostrf(temperature, 4, 1, tStr);
   sprintf(pStr, "%d LT", photoValue);
+  sprintf(hStr, "%.0f%%", humidity);
   display.clearDisplay();
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.printf("T:%s  P:%s", tStr, pStr);
+  display.printf("T:%s  H:%s  P:%s", tStr, hStr, pStr);
   display.setTextSize(1);
   display.setCursor(0, 16);
-  display.printf("Books: %d  State: %d", bookCount, (int)systemState);
+  display.printf("Books:%d Fan:%s", bookCount, fanActive ? "ON" : "OFF");
   display.display();
+}
+
+// ============================================================
+// 风扇联动：湿度超过阈值自动启动
+// ============================================================
+void updateFan() {
+  if (humidity > HUMIDITY_THRESHOLD) {
+    if (!fanActive) {
+      fanActive = true;
+      Serial.printf("湿度 %.0f%% > %d%%，风扇启动\n", humidity, HUMIDITY_THRESHOLD);
+    }
+    // PWM 占空比：湿度越高，转速越快
+    int pwm = map(constrain((int)humidity, HUMIDITY_THRESHOLD, 100), HUMIDITY_THRESHOLD, 100, 128, 255);
+    analogWrite(FAN_PIN, pwm);
+  } else {
+    if (fanActive) {
+      fanActive = false;
+      analogWrite(FAN_PIN, 0);
+      Serial.printf("湿度 %.0f%% <= %d%%，风扇停止\n", humidity, HUMIDITY_THRESHOLD);
+    }
+  }
 }
 
 // ============================================================

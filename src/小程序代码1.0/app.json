@@ -1,6 +1,7 @@
 {
     "pages": [
-        "pages/Huawei_IOT"
+        "pages/Huawei_IOT",
+        "pages/bookshelf/bookshelf"
     ],
     "window": {
         "backgroundTextStyle": "dark",

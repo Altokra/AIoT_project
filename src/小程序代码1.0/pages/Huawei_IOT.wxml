@@ -31,6 +31,18 @@
             </view>
         </view>
 
+        <view class="env-card humidity-card">
+            <view class="env-ring humidity-ring">
+                <view class="ring-center">
+                    <text class="ring-value">{{humidity}}%</text>
+                    <text class="ring-label">湿度</text>
+                </view>
+            </view>
+            <view class="env-tip">
+                <text>{{humidity > 70 ? '过于潮湿' : '湿度正常'}}</text>
+            </view>
+        </view>
+
         <view class="env-card light-card">
             <view class="env-icon-large">
                 <text class="icon-large">光照</text>
@@ -125,18 +137,15 @@
         </view>
     </view>
 
-    <!-- OBS 云端数据区域 -->
-    <view class="obs-section">
-        <view class="obs-sync-row">
-            <button class="btn-obs-sync" bindtap="loadFromOBS" disabled="{{obsSyncing}}" loading="{{obsSyncing}}">
-                从OBS读取统计
-            </button>
-            <button class="btn-obs-sync" bindtap="loadOBSHistory" disabled="{{obsSyncing}}">
-                读取历史记录
-            </button>
-        </view>
-        <view class="obs-status" wx:if="{{lastObsSync}}">
-            <text class="obs-status-text">上次读取: {{lastObsSync}}</text>
+    <!-- 书架入口 -->
+    <view class="shelf-entry">
+        <view class="shelf-btn" bindtap="gotoBookshelf">
+            <view class="shelf-btn-icon">📚</view>
+            <view class="shelf-btn-info">
+                <text class="shelf-btn-title">我的书架</text>
+                <text class="shelf-btn-sub">查看所有图书详情与借还记录</text>
+            </view>
+            <text class="shelf-btn-arrow">›</text>
         </view>
     </view>
 
@@ -152,58 +161,6 @@
                     <view class="timeline-dot {{item.typeClass}}"></view>
                     <view class="timeline-content">
                         <text class="timeline-title">{{item.bookTitle || item.bookId || item.bookId}}</text>
-                        <text class="timeline-time">{{item.time}}</text>
-                    </view>
-                    <view class="timeline-badge {{item.typeClass}}">
-                        {{item.type === 'returned' ? '归还' : '借出'}}
-                    </view>
-                </view>
-            </block>
-        </view>
-    </view>
-
-    <!-- OBS 每本书阅读统计 -->
-    <view class="timeline-section" wx:if="{{showObsBookStats && obsBookStats.length > 0}}">
-        <view class="section-header">
-            <text class="section-title">阅读统计</text>
-            <text class="section-sub">来自云端</text>
-        </view>
-        <view class="obs-book-list">
-            <block wx:for="{{obsBookStats}}" wx:key="uid">
-                <view class="obs-book-card">
-                    <view class="obs-book-row">
-                        <text class="obs-book-title">{{item.title}}</text>
-                        <view class="obs-book-badge {{item.lastStatus}}">
-                            {{item.lastStatus === 'returned' ? '在架' : '借出'}}
-                        </view>
-                    </view>
-                    <view class="obs-book-stats">
-                        <view class="obs-book-stat">
-                            <text class="obs-stat-num">{{item.borrowCount}}</text>
-                            <text class="obs-stat-label">借出次数</text>
-                        </view>
-                        <view class="obs-book-stat">
-                            <text class="obs-stat-num">{{item.readingDisplay}}</text>
-                            <text class="obs-stat-label">阅读时长</text>
-                        </view>
-                    </view>
-                </view>
-            </block>
-        </view>
-    </view>
-
-    <!-- OBS 历史记录面板 -->
-    <view class="timeline-section" wx:if="{{showObsEvents && obsEvents.length > 0}}">
-        <view class="section-header">
-            <text class="section-title">历史借还记录</text>
-            <text class="section-sub" bindtap="loadOBSHistory">刷新</text>
-        </view>
-        <view class="timeline">
-            <block wx:for="{{obsEvents}}" wx:key="index">
-                <view class="timeline-item">
-                    <view class="timeline-dot {{item.typeClass}}"></view>
-                    <view class="timeline-content">
-                        <text class="timeline-title">{{item.bookTitle}}</text>
                         <text class="timeline-time">{{item.time}}</text>
                     </view>
                     <view class="timeline-badge {{item.typeClass}}">
@@ -284,67 +241,6 @@
                 <button class="btn-query" bindtap="touchBtn_queryBook">重新查询</button>
             </view>
         </view>
-    </view>
-
-    <!-- 灯光控制卡片 -->
-    <view class="card control-card">
-        <view class="card-title-bar">
-            <text class="card-title">灯光控制</text>
-        </view>
-        <view class="btn-row">
-            <button class="btn-on" bindtap="onClickOpen">开灯</button>
-            <button class="btn-off" bindtap="onClickOff">关灯</button>
-        </view>
-        <view class="btn-row">
-            <button class="btn-action" bindtap="touchBtn_subTopic">获取Token</button>
-            <button class="btn-action" bindtap="manualRefresh">刷新</button>
-        </view>
-    </view>
-
-    <!-- RGB 调节卡片 -->
-    <view class="card rgb-card">
-        <view class="card-title-bar">
-            <text class="card-title">RGB 颜色调节</text>
-        </view>
-
-        <view class="slider-row">
-            <view class="slider-header">
-                <text class="slider-label" style="color:#ef4444;">红色</text>
-                <text class="slider-value">{{RGBtemp[1] || 0}}</text>
-            </view>
-            <slider bindchange="slider1change" min="0" max="255" value="{{RGBtemp[1] || 0}}" activeColor="#ff4a4a" backgroundColor="#ffe0e0"/>
-        </view>
-
-        <view class="slider-row">
-            <view class="slider-header">
-                <text class="slider-label" style="color:#3b82f6;">蓝色</text>
-                <text class="slider-value">{{RGBtemp[2] || 0}}</text>
-            </view>
-            <slider bindchange="slider2change" min="0" max="255" value="{{RGBtemp[2] || 0}}" activeColor="#4a4aff" backgroundColor="#e0e0ff"/>
-        </view>
-
-        <view class="slider-row">
-            <view class="slider-header">
-                <text class="slider-label" style="color:#22c55e;">绿色</text>
-                <text class="slider-value">{{RGBtemp[3] || 0}}</text>
-            </view>
-            <slider bindchange="slider3change" min="0" max="255" value="{{RGBtemp[3] || 0}}" activeColor="#4aff4a" backgroundColor="#e0ffe0"/>
-        </view>
-
-        <view class="slider-row">
-            <view class="slider-header">
-                <text class="slider-label" style="color:#f59e0b;">频率</text>
-                <text class="slider-value">{{RGBtemp[4] || 0}}</text>
-            </view>
-            <slider bindchange="slider4change" min="0" max="100" value="{{RGBtemp[4] || 0}}" activeColor="#ffa500" backgroundColor="#fff0e0"/>
-        </view>
-
-        <button class="btn-cmd" bindtap="touchBtn_setCommand">下发 RGB 命令</button>
-    </view>
-
-    <!-- 测试按钮 -->
-    <view class="card">
-        <button class="btn-test" bindtap="testLedBlink">测试LED闪烁</button>
     </view>
 
     <!-- 底部日志（可折叠） -->

@@ -36,6 +36,7 @@ Page({
         // 传感器数据
         temperature: '--',
         photores: '--',
+        humidity: 0,
         result: '等待订阅，请点击订阅按钮',
 
         // RGB灯状态（来自设备影子）
@@ -77,14 +78,6 @@ Page({
         lastEventType: '',
         lastEventTime: 0,
         lastProcessedEvent: '',  // 去重：防止重复触发 OBS 写入
-
-        // OBS 同步状态
-        obsSyncing: false,
-        lastObsSync: '',
-        obsEvents: [],        // 从 OBS 读取的历史事件
-        showObsEvents: false,
-        obsBookStats: [],     // 从 OBS 读取的每本书阅读统计
-        showObsBookStats: false  // 是否显示每本书统计面板
     },
 
     // ============== 按钮事件 ==============
@@ -268,6 +261,7 @@ Page({
         // 传感器数据
         var temperature = props.Temperature;
         var photores = props.Photores;
+        var humidity = props.Humidity || 0;
         var red = props.RED || 0;
         var green = props.GREEN || 0;
         var blue = props.BLUE || 0;
@@ -304,6 +298,7 @@ Page({
             result: statusText,
             temperature: temperature !== undefined ? temperature.toFixed(1) + '°' : '--',
             photores: photores || '--',
+            humidity: humidity,
             red: red,
             green: green,
             blue: blue,
@@ -428,6 +423,11 @@ Page({
         this.addLog('事件触发: ' + (eventType === 'returned' ? '图书归还' : (eventType === 'taken' || eventType === 'borrowed' ? '图书借出' : eventType)));
     },
 
+    // ============== 跳转到书架页 ==============
+    gotoBookshelf: function() {
+        wx.navigateTo({ url: '/pages/bookshelf/bookshelf' });
+    },
+
     // ============== 手动刷新 ==============
     manualRefresh: function() {
         this.addLog('手动刷新...');
@@ -443,91 +443,6 @@ Page({
         setTimeout(function() {
             that.triggerEventBlink('taken');
         }, 800);
-    },
-
-    // ============== OBS 读取所有图书统计（公共桶，无需 token）==============
-    loadFromOBS: function() {
-        this.addLog('从 OBS 读取所有图书...');
-        this.setData({ obsSyncing: true });
-        var that = this;
-
-        // 先列举 book/ 目录下的所有文件
-        this.obsList('book/', function(files) {
-            if (!files || files.length === 0) {
-                that.addLog('OBS 中暂无图书数据');
-                wx.showToast({ title: '暂无数据', icon: 'none' });
-                that.setData({ obsSyncing: false, obsBookStats: [], showObsBookStats: false });
-                return;
-            }
-
-            var readCount = Math.min(files.length, 50);
-            var loaded = 0;
-            var allBooks = [];
-
-            for (var i = 0; i < readCount; i++) {
-                (function(idx) {
-                    that.obsGet(files[idx].key, function(book) {
-                        if (book && book.isbn) {
-                            book.readingDisplay = that.formatReadingTime(book.totalReadingSec || 0);
-                            book.lastStatus = book.currentStatus === 'on_shelf' ? 'returned' : 'borrowed';
-                            allBooks.push(book);
-                        }
-                        loaded++;
-                        if (loaded === readCount) {
-                            that.setData({
-                                obsBookStats: allBooks,
-                                showObsBookStats: true
-                            });
-                            that.addLog('OBS 读取到 ' + allBooks.length + ' 本书');
-                            wx.showToast({ title: '读取成功', icon: 'success' });
-                            that.setData({ obsSyncing: false, lastObsSync: new Date().toLocaleString() });
-                        }
-                    });
-                })(i);
-            }
-        });
-    },
-
-    // ============== OBS 读取历史事件 ==============
-    loadOBSHistory: function() {
-        this.addLog('加载 OBS 历史记录...');
-        this.setData({ obsSyncing: true });
-        var that = this;
-
-        this.obsList('events/', function(files) {
-            if (!files || files.length === 0) {
-                that.setData({ showObsEvents: false });
-                wx.showToast({ title: '暂无记录', icon: 'none' });
-                that.setData({ obsSyncing: false });
-                return;
-            }
-
-            var readCount = Math.min(files.length, 30);
-            var loaded = 0;
-            var allEvents = [];
-
-            for (var i = 0; i < readCount; i++) {
-                (function(idx) {
-                    that.obsGet(files[idx].key, function(data) {
-                        if (data && Array.isArray(data)) {
-                            for (var j = 0; j < data.length; j++) {
-                                data[j].typeClass = data[j].type === 'returned' ? 'returned' : 'taken';
-                                data[j].time = that.formatTime(data[j].timestamp);
-                                allEvents.push(data[j]);
-                            }
-                        }
-                        loaded++;
-                        if (loaded === readCount) {
-                            allEvents.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
-                            that.setData({ obsEvents: allEvents.slice(0, 50), showObsEvents: true });
-                            that.addLog('加载了 ' + allEvents.length + ' 条历史记录');
-                            wx.showToast({ title: allEvents.length + ' 条记录', icon: 'none' });
-                            that.setData({ obsSyncing: false });
-                        }
-                    });
-                })(i);
-            }
-        });
     },
 
     // ============== OBS 记录注册事件 ==============
@@ -677,17 +592,33 @@ Page({
         wx.request({
             url: 'https://' + OBS_BUCKET + '.' + OBS_ENDPOINT + '/?prefix=' + encodeURIComponent(prefix),
             method: 'GET',
+            dataType: 'text',
             success: function(res) {
-                if (res.statusCode === 200 && res.data && res.data.contents) {
-                    var files = res.data.contents
-                        .filter(function(item) { return item.key !== prefix && !item.key.endsWith('/'); })
-                        .sort(function(a, b) { return (b.lastModified || '').localeCompare(a.lastModified || ''); });
+                if (res.statusCode === 200 && typeof res.data === 'string') {
+                    var files = [];
+                    var regex = /<Contents>([\s\S]*?)<\/Contents>/g;
+                    var match;
+                    while ((match = regex.exec(res.data)) !== null) {
+                        var content = match[1];
+                        var keyMatch = content.match(/<Key>([\s\S]*?)<\/Key>/);
+                        var timeMatch = content.match(/<LastModified>([\s\S]*?)<\/LastModified>/);
+                        if (keyMatch && !keyMatch[1].endsWith('/')) {
+                            files.push({
+                                key: keyMatch[1],
+                                lastModified: timeMatch ? timeMatch[1] : ''
+                            });
+                        }
+                    }
+                    files.sort(function(a, b) { return (b.lastModified || '').localeCompare(a.lastModified || ''); });
+                    that.addLog('OBS 列举 ' + prefix + ': ' + files.length + ' 个文件');
                     callback(files);
                 } else {
+                    that.addLog('OBS 列举失败: ' + res.statusCode);
                     callback([]);
                 }
             },
-            fail: function() {
+            fail: function(err) {
+                that.addLog('OBS 列举网络错误: ' + (err.errMsg || ''));
                 callback([]);
             }
         });
