@@ -1,0 +1,16 @@
+{
+    "pages": [
+        "pages/Huawei_IOT",
+        "pages/bookshelf/bookshelf",
+        "pages/ai_chat/ai_chat"
+    ],
+    "window": {
+        "backgroundTextStyle": "dark",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTitleText": "智能图书馆",
+        "navigationBarTextStyle": "white",
+        "backgroundColor": "#f8f9fc"
+    },
+    "style": "v2",
+    "sitemapLocation": "sitemap.json"
+}
