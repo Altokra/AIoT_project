@@ -81,6 +81,7 @@
 %%参考文献设置
 \newcommand{\reference}{
 %\nocite{*}   %打开此选项会列出bib里面的所有参考文献
+\renewcommand{\refname}{参考文档}
 \bibliographystyle{unsrt} %规定了参考文献的格式
 \begin{center}%居中
 	\bibliography{reference} %调出LaTeX生成参考文献列表
@@ -111,16 +112,20 @@
 
 %封面页设置
 {
-    \title{ \vspace{2cm} \heiti \Huge \textbf{{智能物联网系统设计实验报告}} \par
+    \title{ \vspace{2cm} \heiti \Huge \textbf{{智能物联网系统设计期末大作业报告}} \par
     \vspace{1cm}
-    \heiti \Large {\underline{—— 基于ESP32与华为云的智能图书馆系统}}
+    \heiti \Large {\underline{基于ESP32与华为云的智能图书馆系统}}
     \vspace{3cm} }%标题
 
     \author{
     \vspace{0.5cm}
-    \kaishu\Large 姓名\ \dlmu[9cm]{陈文浩} \qquad \\ %姓名
+    \kaishu\Large 组员1\ \dlmu[9cm]{} \qquad \\ %姓名
     \vspace{0.5cm}
-    \kaishu\Large  学号\ \dlmu[9cm]{3240101166} \qquad  \\ %学号
+    \kaishu\Large  学号\ \dlmu[9cm]{} \qquad  \\ %学号
+    \vspace{0.5cm}
+    \kaishu\Large 组员2\ \dlmu[9cm]{} \qquad \\ %姓名
+    \vspace{0.5cm}
+    \kaishu\Large  学号\ \dlmu[9cm]{} \qquad  \\ %学号
     \vspace{0.5cm}
     \kaishu\Large   院系\ \dlmu[9cm]{信息与电子工程学院} %院所
         }

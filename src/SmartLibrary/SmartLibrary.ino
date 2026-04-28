@@ -558,8 +558,7 @@ void publishSensorData() {
 }
 
 // ============================================================
-// 风扇联动：湿度超过阈值自动启动（PNP低边开关）
-// GPIO LOW = PNP导通 = 风扇转，GPIO HIGH = PNP截止 = 风扇停
+// 风扇联动：湿度超过阈值自动启动
 // ============================================================
 void updateFan() {
   if (fanManualOverride) return;  // 手动开启时跳过自动逻辑
@@ -603,11 +602,11 @@ String getUIDString() {
 }
 
 // ============================================================
-// NFC 检测主逻辑（Toggle 模式：再次检测同一张卡 = 状态翻转）
+// NFC 检测主逻辑
 // ============================================================
 void checkNFC() {
   if (!mfrc522.PICC_IsNewCardPresent()) {
-    return;  // 不再通过"检测不到"判断离开
+    return; 
   }
 
   if (!mfrc522.PICC_ReadCardSerial()) return;
@@ -631,7 +630,7 @@ void checkNFC() {
   }
   lastTapMs = millis();
 
-  // 记录新卡片（触发状态翻转）
+  // 记录新卡片
   lastDetectedUID = uid;
 
   switch (systemState) {
@@ -707,12 +706,12 @@ void checkBarcode() {
 }
 
 // ============================================================
-// 图书被检测（Toggle 模式：再次检测同一张卡 = 状态翻转）
+// 图书被检测
 // ============================================================
 void onBookDetected(const String& uid) {
   int idx = findBookByUID(uid);
   if (idx >= 0) {
-    // 已注册的书 → 翻转在架状态
+    // 已注册的书 → 更改在架状态
     bool wasOnShelf = bookShelf[idx].onShelf;
     bookShelf[idx].onShelf = !wasOnShelf;
     bookShelf[idx].lastUpdate = millis();
@@ -754,12 +753,7 @@ void onBookDetected(const String& uid) {
   }
 }
 
-// ============================================================
-// 图书被取走（离开检测 → 借出）
-// ============================================================
-void onBookRemoved(const String& uid) {
-  // 已移除：不再通过"检测不到"判断借出，改用 Toggle 模式
-}
+
 
 // ============================================================
 // 注册新图书
@@ -955,7 +949,7 @@ bool saveBooks() {
 }
 
 // ============================================================
-// OLED 显示一行文字
+// OLED 
 // ============================================================
 void displayStatus(const String& line1, const String& line2, const String& line3) {
   display.clearDisplay();
@@ -1006,7 +1000,7 @@ void ledSuccess() {
 }
 
 void ledError() {
-  setRGB(255, 0, 0);  // 红色
+  setRGB(255, 0, 0);  // 红色 = 借出
   delay(1000);
   if (systemState == SystemState::IDLE) setRGB(0, 255, 0);
 }
@@ -1017,7 +1011,7 @@ void ledWaiting() {
 
 
 // ============================================================
-// AI功能实现（直接复制测试程序中的这些函数）
+// 本地AI功能实现（aborted）
 // ============================================================
 
 bool canCallAI() {

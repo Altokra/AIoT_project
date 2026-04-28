@@ -2,7 +2,7 @@
  * @Author: ka1shu1 cwh979946@163.com
  * @Date: 2026-04-13 18:30:12
  * @LastEditors: ka1shu1 cwh979946@163.com
- * @LastEditTime: 2026-04-27 19:26:22
+ * @LastEditTime: 2026-04-28 21:33:54
  * @FilePath: \final project\README.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -24,7 +24,7 @@
 
 [火灾报警](https://github.com/mcu-coder/esp32_fire_and_smoke_alarm)
 [环境监测](https://github.com/mcu-coder/esp32_environment_monitor)
-感觉可照抄
+
 
 
 
@@ -148,7 +148,9 @@ AI api接口接入esp32本地，实现基本问答 check
 
 温度报警 check
 
+### 04-28-2026 
 
+撰写实验报告 check
 
 ## 改进可能
 
@@ -156,6 +158,13 @@ AI api接口接入esp32本地，实现基本问答 check
 
 
 RC522感应距离过短--增加天线
+
+## AI协助
+
+主要使用claude code api进行辅助代码开发及问题查找和解决
+
+codex辅助撰写实验报告
+
 
 
 

@@ -1,0 +1,54 @@
+\begin{thebibliography}{1}
+
+\bibitem{huawei-support}
+华为云.
+\newblock 华为云官方帮助文档.
+\newblock \url{https://support.huaweicloud.com/}, 2026.
+
+\bibitem{randomnerd-esp32-mfrc522}
+Random~Nerd Tutorials.
+\newblock Esp32 with mfrc522 rfid reader using arduino ide.
+\newblock
+  \url{https://randomnerdtutorials.com/esp32-mfrc522-rfid-reader-arduino/},
+  2026.
+
+\bibitem{yhd-m803d-manual}
+YHD.
+\newblock Yhd-m803d user manual v2.1.
+\newblock
+  \url{https://v6-file.globalso.com/upload/p/827/file/2025-01/yhd-m803d-user-manual-v2-1.pdf},
+  2025.
+
+\bibitem{lckfb-dht11}
+立创开发板技术文档.
+\newblock Dht11 温湿度传感器模块资料.
+\newblock
+  \url{https://wiki.lckfb.com/zh-hans/coloreasyduino/module/sensor/dht11.html},
+  2026.
+
+\bibitem{randomnerd-esp32-dht}
+Random~Nerd Tutorials.
+\newblock Esp32 dht11/dht22 temperature and humidity sensor using arduino ide.
+\newblock
+  \url{https://randomnerdtutorials.com/esp32-dht11-dht22-temperature-humidity-sensor-arduino-ide/},
+  2026.
+
+\bibitem{espressif-devkitc-guide}
+Espressif Systems.
+\newblock Esp32-devkitc 用户指南.
+\newblock
+  \url{https://docs.espressif.com/projects/esp-dev-kits/zh_CN/latest/esp32/esp32-devkitc/user_guide.html},
+  2026.
+
+\bibitem{isbn-work-api}
+ISBN Work.
+\newblock Isbn 查询 api 接口文档.
+\newblock \url{https://market.isbn.work/apiMargetDetail/1}, 2026.
+
+\bibitem{ecslab-slibrary}
+ECSLab.
+\newblock Slibrary 项目源码.
+\newblock \url{https://github.com/ECSLab/SLibrary}, 2026.
+\newblock 项目灵感来源；.
+
+\end{thebibliography}
