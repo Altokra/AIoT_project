@@ -2,7 +2,7 @@
  * @Author: ka1shu1 cwh979946@163.com
  * @Date: 2026-04-13 18:30:12
  * @LastEditors: ka1shu1 cwh979946@163.com
- * @LastEditTime: 2026-05-06 11:12:02
+ * @LastEditTime: 2026-05-06 11:31:13
  * @FilePath: \final project\README.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -14,7 +14,7 @@
 
 本项目为 2026 春夏学期 ldw 老师班 智能物联网系统设计大作业
 
-
+p.s.第一次建立项目经验不足，没有注意保护隐私,已重新建立仓库，无法展示更新过程了。
 
 ## 参考项目
 
